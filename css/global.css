@@ -1,0 +1,298 @@
+/* ═══════════════════════════════════
+   GLOBAL.CSS — LinguaVerse
+   Neon Glassmorphism Theme
+═══════════════════════════════════ */
+
+:root {
+  /* Deep dark base — like the reference */
+  --bg:        #070712;
+  --bg2:       #0d0d1f;
+  --surface:   rgba(255,255,255,0.04);
+  --surface2:  rgba(255,255,255,0.07);
+  --surface3:  rgba(255,255,255,0.10);
+  --border:    rgba(255,255,255,0.08);
+  --border-h:  rgba(255,255,255,0.20);
+  --text:      #f0eeff;
+  --muted:     rgba(240,238,255,0.40);
+
+  /* Neon palette — matching the reference exactly */
+  --neon-pink:    #e040fb;
+  --neon-blue:    #40c8ff;
+  --neon-purple:  #7c3aed;
+  --neon-cyan:    #00e5ff;
+  --neon-green:   #00e676;
+  --neon-yellow:  #ffd740;
+  --neon-orange:  #ff6d00;
+
+  /* Glow dims */
+  --pink-dim:   rgba(224,64,251,0.15);
+  --blue-dim:   rgba(64,200,255,0.15);
+  --purple-dim: rgba(124,58,237,0.15);
+  --cyan-dim:   rgba(0,229,255,0.12);
+
+  /* Typography */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Outfit', sans-serif;
+  --font-mono:    'Space Mono', monospace;
+
+  /* Radii */
+  --radius:    16px;
+  --radius-sm: 10px;
+  --radius-lg: 28px;
+  --radius-xl: 36px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 400;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── ANIMATED CANVAS BACKGROUND ── */
+#bgCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── AMBIENT NEON ORBS ── */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  animation: orbFloat 25s ease-in-out infinite, orbFade 3s ease forwards;
+}
+@keyframes orbFade { to { opacity: 1; } }
+
+.orb-1 {
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, rgba(224,64,251,0.22) 0%, transparent 65%);
+  top: -300px; left: -250px;
+  animation-delay: 0s;
+}
+.orb-2 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(64,200,255,0.18) 0%, transparent 65%);
+  bottom: -200px; right: -200px;
+  animation-delay: -10s;
+}
+.orb-3 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(124,58,237,0.20) 0%, transparent 65%);
+  top: 40%; left: 50%;
+  animation-delay: -5s;
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  25%       { transform: translate(50px,-60px) scale(1.07); }
+  50%       { transform: translate(-40px,30px) scale(0.95); }
+  75%       { transform: translate(25px,50px) scale(1.04); }
+}
+
+/* ── GLASS CARD — core UI pattern ── */
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+.glass-strong {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+}
+
+/* ── NEON GLOW UTILITY ── */
+.glow-pink   { box-shadow: 0 0 24px rgba(224,64,251,0.35); }
+.glow-blue   { box-shadow: 0 0 24px rgba(64,200,255,0.35); }
+.glow-purple { box-shadow: 0 0 24px rgba(124,58,237,0.35); }
+
+/* ── SHARED BUTTONS ── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+  color: #fff;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 14px 30px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.25s, box-shadow 0.25s;
+  position: relative;
+  z-index: 1;
+  letter-spacing: 0.02em;
+}
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink), var(--neon-blue));
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 40px rgba(224,64,251,0.45), 0 0 20px rgba(124,58,237,0.3);
+}
+.btn-primary:hover::before { opacity: 1; }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 13px 26px;
+  border-radius: 50px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.25s;
+  backdrop-filter: blur(12px);
+}
+.btn-ghost:hover {
+  border-color: rgba(224,64,251,0.5);
+  color: var(--text);
+  box-shadow: 0 0 20px rgba(224,64,251,0.15);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,82,82,0.1);
+  color: #ff5252;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 12px 20px;
+  border-radius: 50px;
+  border: 1px solid rgba(255,82,82,0.25);
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+.btn-danger:hover { background: rgba(255,82,82,0.18); box-shadow: 0 0 20px rgba(255,82,82,0.2); }
+
+/* ── SHARED INPUTS ── */
+.simple-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 12px 16px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  backdrop-filter: blur(10px);
+}
+.simple-input:focus {
+  border-color: rgba(224,64,251,0.6);
+  box-shadow: 0 0 0 3px rgba(224,64,251,0.1);
+}
+.simple-input::placeholder { color: var(--muted); }
+
+.select-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 12px 14px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgba(240,238,255,0.4)' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.select-input:focus {
+  border-color: rgba(64,200,255,0.5);
+  box-shadow: 0 0 0 3px rgba(64,200,255,0.08);
+}
+
+.field-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* ── BACK BUTTON ── */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: all 0.2s;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+}
+.back-btn:hover {
+  color: var(--text);
+  border-color: rgba(64,200,255,0.4);
+  box-shadow: 0 0 16px rgba(64,200,255,0.15);
+}
+
+/* ── REVEAL ANIMATION ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.65s ease var(--delay, 0s), transform 0.65s ease var(--delay, 0s);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── NEON SCROLLBAR ── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--neon-purple), var(--neon-pink));
+  border-radius: 4px;
+}
+
