@@ -1,466 +1,431 @@
-/* ═══════════════════════════════════
+/* ═══════════════════════════════
    chat.js — LinguaVerse
-   Full AI chat logic with Gemini API
-═══════════════════════════════════ */
+═══════════════════════════════ */
 
-// ── STATE ────────────────────────────
+// ── STATE ──
 let settings = {
-  apiKey: localStorage.getItem('lv_apiKey') || '',
-  lang:   localStorage.getItem('lv_lang')   || 'Japanese',
-  level:  localStorage.getItem('lv_level')  || 'Beginner',
-  mode:   localStorage.getItem('lv_mode')   || 'Conversation',
-  name:   localStorage.getItem('lv_name')   || 'Learner',
+  apiKey:     localStorage.getItem('lv_apiKey')     || '',
+  lang:       localStorage.getItem('lv_lang')       || 'Japanese',
+  level:      localStorage.getItem('lv_level')      || 'Beginner',
+  mode:       localStorage.getItem('lv_mode')       || 'Conversation',
+  name:       localStorage.getItem('lv_name')       || 'Learner',
+  voiceSpeed: parseFloat(localStorage.getItem('lv_voiceSpeed') || '1.0'),
 };
 
 let chatHistory = [];
 let isThinking  = false;
 let recognition = null;
 let isRecording = false;
+let soundMode   = false;
+let isSpeaking  = false;
+const synth     = window.speechSynthesis;
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
-// ── DOM REFS ─────────────────────────
-const chatBody  = document.getElementById('chatBody');
-const msgInput  = document.getElementById('msgInput');
-const sendBtn   = document.getElementById('sendBtn');
-const micBtn    = document.getElementById('micBtn');
-const aiAvatar  = document.getElementById('aiAvatar');
-const botStatus = document.getElementById('botStatus');
-const botName   = document.getElementById('botName');
+// ── DOM ──
+const chatBody     = document.getElementById('chatBody');
+const msgInput     = document.getElementById('msgInput');
+const sendBtn      = document.getElementById('sendBtn');
+const micBtn       = document.getElementById('micBtn');
+const aiAvatar     = document.getElementById('aiAvatar');
+const botStatus    = document.getElementById('botStatus');
+const botName      = document.getElementById('botName');
+const soundModeBtn = document.getElementById('soundModeBtn');
+const voiceWave    = document.getElementById('voiceWave');
 
-// ── INIT ─────────────────────────────
+// Language code map for TTS & speech recognition
+const LANG_CODES = {
+  Japanese:'ja-JP', French:'fr-FR', Spanish:'es-ES', Mandarin:'zh-CN',
+  Arabic:'ar-SA', German:'de-DE', Korean:'ko-KR', Portuguese:'pt-BR',
+  Italian:'it-IT', Hindi:'hi-IN', Russian:'ru-RU', Turkish:'tr-TR',
+  Dutch:'nl-NL', Swedish:'sv-SE', Polish:'pl-PL', Greek:'el-GR',
+  Hebrew:'he-IL', Thai:'th-TH', Vietnamese:'vi-VN', Indonesian:'id-ID',
+};
+
+// Language display names for bot header
+const LANG_LABELS = {
+  Japanese:'JA', French:'FR', Spanish:'ES', Mandarin:'ZH',
+  Arabic:'AR', German:'DE', Korean:'KO', Portuguese:'PT',
+  Italian:'IT', Hindi:'HI', Russian:'RU', Turkish:'TR',
+  Dutch:'NL', Swedish:'SV', Polish:'PL', Greek:'EL',
+  Hebrew:'HE', Thai:'TH', Vietnamese:'VI', Indonesian:'ID',
+};
+
+// ── INIT ──
 window.addEventListener('DOMContentLoaded', () => {
   syncSettingsUI();
   showWelcome();
   loadDailyItems();
+  if (synth) synth.getVoices(); // preload voices
 });
 
 function syncSettingsUI() {
-  const s = document.getElementById('settingLang');
-  const l = document.getElementById('settingLevel');
-  const m = document.getElementById('settingMode');
-  const k = document.getElementById('settingKey');
-  if (s) s.value = settings.lang;
-  if (l) l.value = settings.level;
-  if (m) m.value = settings.mode;
-  if (k) k.value = settings.apiKey;
-
-  const flag = langFlag(settings.lang);
-  botName.textContent = `${flag} LinguaBot`;
+  setVal('settingLang',  settings.lang);
+  setVal('settingLevel', settings.level);
+  setVal('settingMode',  settings.mode);
+  setVal('settingKey',   settings.apiKey);
+  setVal('settingSpeed', String(settings.voiceSpeed));
+  botName.textContent = `[${LANG_LABELS[settings.lang]||'??'}] LinguaBot`;
 }
+function setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
 
 function saveSetting(key, val) {
-  settings[key] = val;
+  settings[key] = key === 'voiceSpeed' ? parseFloat(val) : val;
   localStorage.setItem(`lv_${key}`, val);
-  if (key === 'lang') botName.textContent = `${langFlag(val)} LinguaBot`;
+  if (key === 'lang') botName.textContent = `[${LANG_LABELS[val]||'??'}] LinguaBot`;
 }
 
-function langFlag(lang) {
-  const flags = {
-    Japanese:'🇯🇵', French:'🇫🇷', Spanish:'🇪🇸', Mandarin:'🇨🇳',
-    Arabic:'🇸🇦', German:'🇩🇪', Korean:'🇰🇷', Portuguese:'🇧🇷',
-    Italian:'🇮🇹', Hindi:'🇮🇳', Russian:'🇷🇺', Turkish:'🇹🇷',
-  };
-  return flags[lang] || '🌐';
+function toggleSettingKey() {
+  const el = document.getElementById('settingKey');
+  if (el) el.type = el.type === 'password' ? 'text' : 'password';
 }
 
-// ── WELCOME MESSAGE ───────────────────
+// ── WELCOME MESSAGE ──
 function showWelcome() {
-  const welcomes = {
-    Japanese:   ['こんにちは！', 'Hello! (Konnichiwa!)'],
-    French:     ['Bonjour !', 'Hello!'],
-    Spanish:    ['¡Hola!', 'Hello!'],
-    Mandarin:   ['你好！', 'Hello! (Nǐ hǎo!)'],
-    Arabic:     ['مرحباً!', 'Hello! (Marhaban!)'],
-    German:     ['Hallo!', 'Hello!'],
-    Korean:     ['안녕하세요!', 'Hello! (Annyeonghaseyo!)'],
-    Portuguese: ['Olá!', 'Hello!'],
-    Italian:    ['Ciao!', 'Hello!'],
-    Hindi:      ['नमस्ते!', 'Hello! (Namaste!)'],
-    Russian:    ['Привет!', 'Hello! (Privet!)'],
-    Turkish:    ['Merhaba!', 'Hello!'],
+  const greetings = {
+    Japanese:'こんにちは (Konnichiwa)', French:'Bonjour !',
+    Spanish:'¡Hola!', Mandarin:'你好 (Nǐ hǎo)',
+    Arabic:'مرحباً (Marhaban)', German:'Hallo!',
+    Korean:'안녕하세요 (Annyeonghaseyo)', Portuguese:'Olá!',
+    Italian:'Ciao!', Hindi:'नमस्ते (Namaste)',
+    Russian:'Привет (Privet)', Turkish:'Merhaba!',
+    Dutch:'Hallo!', Swedish:'Hej!', Polish:'Cześć!',
+    Greek:'Γεια σου (Yia sou)', Hebrew:'שָׁלוֹם (Shalom)',
+    Thai:'สวัสดี (Sawasdee)', Vietnamese:'Xin chào!', Indonesian:'Halo!',
   };
+  const greeting = greetings[settings.lang] || 'Hello!';
+  const parts = greeting.split(' ');
+  const native = parts[0];
 
-  const [native, eng] = welcomes[settings.lang] || ['Hello!', ''];
-
-  const content = `
-    <span class="word-chip" data-word="${native}" data-rom="${eng}" data-def="A standard greeting in ${settings.lang}">${native}</span> ${eng}
-    I'm your <strong>${settings.lang}</strong> tutor — at <strong>${settings.level}</strong> level, in <strong>${settings.mode}</strong> mode.
+  appendMessage('ai', `
+    <span class="word-chip" data-word="${native}" data-rom="" data-def="A greeting in ${settings.lang}">${greeting}</span>
     <br/><br/>
-    I'll teach you vocabulary, grammar, culture, and pronunciation. <strong>Tap any highlighted word</strong> to see its meaning instantly.
+    I'm your <strong>${settings.lang}</strong> tutor at <strong>${settings.level}</strong> level in <strong>${settings.mode}</strong> mode.
     <br/><br/>
-    What shall we explore today? You can ask me anything, or pick a quick prompt below. 🌟
-  `;
-
-  appendMessage('ai', content);
+    Tap any <span class="word-chip" data-word="highlighted word" data-rom="" data-def="Tap me for translation!">highlighted word</span> for an instant translation.
+    Enable <strong>🔊 Sound Mode</strong> for hands-free voice conversation!
+    <br/><br/>
+    What shall we explore today? 🌟
+  `);
 }
 
-// ── BUILD SYSTEM PROMPT ───────────────
+// ── SYSTEM PROMPT ──
 function buildSystemPrompt() {
-  return `You are LinguaBot, an expert, warm, and encouraging ${settings.lang} language tutor for a ${settings.level} learner named ${settings.name}. You're in "${settings.mode}" mode.
+  return `You are LinguaBot, an expert warm ${settings.lang} language tutor for a ${settings.level} learner named ${settings.name}. Mode: "${settings.mode}".
 
 TEACHING STYLE:
-- Adapt complexity to ${settings.level} level
-- In Conversation mode: have natural conversations, gently correct mistakes
-- In Story mode: create immersive micro-stories where the user plays a character
-- In Lesson mode: structured explanations with examples
+- Conversation: natural chat, gently correct mistakes inline
+- Story: immersive micro-stories where user is the protagonist  
+- Lesson: structured explanations with clear examples
 
-FORMATTING RULES (CRITICAL):
-- Wrap key ${settings.lang} vocabulary in: <span class="word-chip" data-word="WORD" data-rom="ROMANIZATION" data-def="ENGLISH_MEANING">WORD</span>
-- Include romanization/pronunciation for non-Latin scripts
-- Add cultural insights wrapped in: <div class="culture-badge">🌏 Cultural note: YOUR_NOTE</div>
-- Use <strong> for emphasis on important grammar points
-- Keep responses concise but rich — aim for 3-5 sentences max unless teaching something complex
+${soundMode ? `SOUND MODE IS ON: Keep responses under 3 sentences. Plain text only — no HTML tags.
+Include at least one ${settings.lang} phrase so TTS speaks it correctly.
+Format: say the phrase first, then brief English explanation.` : `
+FORMATTING (use every response):
+- Wrap key ${settings.lang} vocab: <span class="word-chip" data-word="WORD" data-rom="ROMANIZATION" data-def="ENGLISH">WORD</span>
+- Cultural notes: <div class="culture-badge">🌏 Cultural note: ONE_PARAGRAPH_NO_LINE_BREAKS</div>
+- Listen buttons: <button class="speak-btn" onclick="speakText('THE_TARGET_LANGUAGE_PHRASE_ONLY')">🔊 Listen</button>
+- Use <strong> for grammar emphasis
+- Keep responses 3-5 sentences`}
 
-UNIQUE FEATURES:
-- Occasionally share fascinating cultural facts about ${settings.lang}-speaking countries
-- Detect if user seems confused (short replies, "?", "what?") and simplify
+ALWAYS:
 - Celebrate when user uses target language correctly
-- If user writes in ${settings.lang}, respond partly in ${settings.lang} too
-- Always end with an engaging follow-up question or mini-challenge
-
-Remember: You're not just a translator — you're a cultural ambassador and patient friend.`;
+- Simplify if user seems confused
+- End with a question or mini-challenge
+- Be warm, encouraging, and culturally insightful`;
 }
 
-// ── SEND MESSAGE ──────────────────────
+// ── SEND MESSAGE ──
 async function sendMessage() {
   const text = msgInput.value.trim();
   if (!text || isThinking) return;
-
   if (!settings.apiKey) {
-    appendMessage('ai', '⚠️ Please <a href="../pages/setup.html" style="color:var(--teal)">add your Gemini API key</a> in Setup to start chatting!');
+    appendMessage('ai', '⚠️ Please <a href="../pages/setup.html" style="color:var(--neon-cyan)">add your Gemini API key</a> in Setup first!');
     return;
   }
-
   appendMessage('user', escapeHtml(text));
-  chatHistory.push({ role: 'user', parts: [{ text }] });
-
+  chatHistory.push({ role:'user', parts:[{ text }] });
   msgInput.value = '';
   msgInput.style.height = 'auto';
   sendBtn.disabled = true;
   setThinking(true);
-
   const typingEl = showTyping();
 
   try {
     const response = await callGemini(chatHistory);
     removeTyping(typingEl);
-    chatHistory.push({ role: 'model', parts: [{ text: response }] });
+    chatHistory.push({ role:'model', parts:[{ text: response }] });
     appendMessage('ai', response);
+    if (soundMode) {
+      const plain = stripHtml(response).replace(/\s+/g,' ').trim();
+      await speakAndListen(plain);
+    }
   } catch (err) {
     removeTyping(typingEl);
-    appendMessage('ai', `⚠️ Error: ${err.message}. Check your API key in Settings.`);
+    appendMessage('ai', `⚠️ Error: ${err.message}. Check your API key in Settings ⚙️`);
   } finally {
     setThinking(false);
     sendBtn.disabled = false;
   }
 }
 
-// ── GEMINI API CALL ───────────────────
+// ── GEMINI API ──
 async function callGemini(history) {
-  if (!settings.apiKey) throw new Error('No API key set');
-
   const body = {
-    system_instruction: { parts: [{ text: buildSystemPrompt() }] },
+    system_instruction: { parts:[{ text: buildSystemPrompt() }] },
     contents: history,
     generationConfig: {
-      temperature: 0.85,
-      topK: 40,
-      topP: 0.95,
-      maxOutputTokens: 600,
+      temperature: 0.85, topK: 40, topP: 0.95,
+      maxOutputTokens: soundMode ? 250 : 600,
     },
   };
-
   const res = await fetch(`${GEMINI_URL}?key=${settings.apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
   });
-
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
+    const err = await res.json().catch(()=>({}));
     throw new Error(err?.error?.message || `HTTP ${res.status}`);
   }
-
   const data = await res.json();
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || 'I had trouble responding. Please try again.';
 }
 
-// ── APPEND MESSAGE ────────────────────
+// ── APPEND MESSAGE ──
 function appendMessage(role, html) {
-  const row = document.createElement('div');
-  row.className = `msg-row ${role === 'user' ? 'user' : ''}`;
+  const row    = document.createElement('div');
+  row.className = `msg-row ${role==='user'?'user':''}`;
 
-  const av = document.createElement('div');
-  av.className = `msg-avatar ${role === 'ai' ? 'ai-av' : 'usr-av'}`;
-  av.textContent = role === 'ai' ? '✦' : settings.name[0].toUpperCase();
+  const av      = document.createElement('div');
+  av.className  = `msg-avatar ${role==='ai'?'ai-av':'usr-av'}`;
+  av.textContent = role==='ai' ? '✦' : (settings.name[0]||'U').toUpperCase();
 
-  const bubble = document.createElement('div');
-  bubble.className = `bubble ${role === 'ai' ? 'ai-bubble' : 'user-bubble'}`;
+  const bubble   = document.createElement('div');
+  bubble.className = `bubble ${role==='ai'?'ai-bubble':'user-bubble'}`;
   bubble.innerHTML = html;
 
-  const time = document.createElement('div');
+  const time     = document.createElement('div');
   time.className = 'msg-time';
-  time.textContent = now();
+  time.textContent = nowTime();
 
-  if (role === 'user') {
-    row.appendChild(time);
-    row.appendChild(bubble);
-    row.appendChild(av);
-  } else {
-    row.appendChild(av);
-    row.appendChild(bubble);
-    row.appendChild(time);
-  }
+  if (role==='user') { row.append(time, bubble, av); }
+  else               { row.append(av, bubble, time); }
 
   chatBody.appendChild(row);
   scrollToBottom();
-
-  // Attach word chip listeners
-  bubble.querySelectorAll('.word-chip').forEach(chip => {
-    chip.addEventListener('click', (e) => showWordTooltip(e, chip));
-  });
+  bubble.querySelectorAll('.word-chip').forEach(c => c.addEventListener('click', e => showWordTooltip(e, c)));
 }
 
-// ── TYPING INDICATOR ──────────────────
+// ── TYPING ──
 function showTyping() {
   const row = document.createElement('div');
-  row.className = 'typing-row';
-  row.id = 'typingRow';
-  row.innerHTML = `
-    <div class="msg-avatar ai-av">✦</div>
-    <div class="typing-bubble">
-      <div class="dot"></div>
-      <div class="dot"></div>
-      <div class="dot"></div>
-    </div>
-  `;
-  chatBody.appendChild(row);
-  scrollToBottom();
-  return row;
+  row.className = 'typing-row'; row.id = 'typingRow';
+  row.innerHTML = `<div class="msg-avatar ai-av">✦</div>
+    <div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  chatBody.appendChild(row); scrollToBottom(); return row;
 }
 function removeTyping(el) { el && el.remove(); }
 
-// ── THINKING STATE ────────────────────
+// ── THINKING STATE ──
 function setThinking(on) {
   isThinking = on;
-  if (on) {
-    aiAvatar.classList.add('thinking');
-    botStatus.textContent = '⚙ Thinking…';
-    botStatus.className = 'bot-status thinking-status';
+  aiAvatar.classList.toggle('thinking', on);
+  botStatus.textContent = on ? '⚙ Thinking…' : (soundMode ? '🔊 Sound Mode' : '● Online');
+  botStatus.className   = 'bot-status' + (on ? ' thinking-status' : '');
+}
+
+// ══════════════════════════════
+//  SOUND MODE
+// ══════════════════════════════
+function toggleSoundMode() {
+  soundMode = !soundMode;
+  soundModeBtn.classList.toggle('active', soundMode);
+  soundModeBtn.innerHTML = soundMode
+    ? `<span style="width:8px;height:8px;border-radius:50%;background:var(--neon-green);animation:dotLive 1s ease infinite;display:inline-block"></span> <span class="sound-label">Sound</span>`
+    : `🔊 <span class="sound-label">Sound</span>`;
+
+  botStatus.textContent = soundMode ? '🔊 Sound Mode' : '● Online';
+
+  if (soundMode) {
+    appendMessage('ai', '🔊 <strong>Sound Mode ON!</strong> I\'ll speak and listen automatically. Say <em>"stop"</em> anytime to exit.');
+    setTimeout(() => startListening(), 800);
   } else {
-    aiAvatar.classList.remove('thinking');
-    botStatus.textContent = '● Online';
-    botStatus.className = 'bot-status';
+    stopListening();
+    if (synth) synth.cancel();
+    voiceWave.classList.remove('active');
+    appendMessage('ai', 'Sound Mode off — back to text chat. 💬');
   }
 }
 
-// ── WORD TOOLTIP ──────────────────────
-const tooltip = document.getElementById('wordTooltip');
-
-function showWordTooltip(e, chip) {
-  const word = chip.dataset.word || '';
-  const rom  = chip.dataset.rom  || '';
-  const def  = chip.dataset.def  || '';
-
-  tooltip.innerHTML = `
-    <span class="tooltip-word">${word}</span>
-    ${rom ? `<span class="tooltip-rom">${rom}</span>` : ''}
-    <span>${def}</span>
-  `;
-
-  const rect = chip.getBoundingClientRect();
-  let top  = rect.top - tooltip.offsetHeight - 10;
-  let left = rect.left;
-
-  // Flip if too high
-  if (top < 10) top = rect.bottom + 10;
-  // Clamp right edge
-  const tW = 260;
-  if (left + tW > window.innerWidth - 10) left = window.innerWidth - tW - 10;
-
-  tooltip.style.top  = `${top + window.scrollY}px`;
-  tooltip.style.left = `${left}px`;
-  tooltip.classList.add('visible');
-
-  // Hide on outside click
-  setTimeout(() => {
-    document.addEventListener('click', hideTooltip, { once: true });
-  }, 0);
-}
-function hideTooltip() {
-  tooltip.classList.remove('visible');
+async function speakAndListen(text) {
+  if (!soundMode) return;
+  stopListening();
+  await speakText(text);
+  if (soundMode) setTimeout(() => startListening(), 500);
 }
 
-// ── QUICK PROMPTS ─────────────────────
-function sendQuick(btn) {
-  const prompts = {
-    'Teach me a phrase':  `Teach me a useful everyday phrase in ${settings.lang} for a ${settings.level} learner.`,
-    'Cultural insight':   `Share a fascinating cultural fact or insight about ${settings.lang}-speaking countries.`,
-    'Tell me a story':    `Start a short immersive story in ${settings.lang} where I'm the main character. Keep it ${settings.level} level.`,
-    'Grammar tip':        `Give me one essential ${settings.lang} grammar tip that's commonly misunderstood by ${settings.level} learners.`,
-    'Test my level':      `Give me a short quiz — 3 questions — to test my ${settings.lang} ${settings.level} knowledge. Then evaluate my answers.`,
-  };
-  const text = prompts[btn.textContent] || btn.textContent;
-  msgInput.value = text;
-  sendMessage();
+// Text-to-speech — ALWAYS sets lang code first (fixes wrong language bug)
+function speakText(text) {
+  return new Promise(resolve => {
+    if (!synth) { resolve(); return; }
+    synth.cancel();
+    isSpeaking = true;
+    voiceWave.classList.add('active');
+
+    const plain = stripHtml(String(text)).replace(/\s+/g,' ').trim();
+    const utter = new SpeechSynthesisUtterance(plain);
+    utter.rate   = settings.voiceSpeed;
+    utter.pitch  = 1.05;
+    utter.volume = 1;
+
+    // CRITICAL: always set lang so TTS uses correct language
+    const code = LANG_CODES[settings.lang] || 'en-US';
+    utter.lang  = code;
+
+    // Try to find a matching installed voice
+    const voices = synth.getVoices();
+    const prefix = code.split('-')[0];
+    const match  = voices.find(v => v.lang === code) || voices.find(v => v.lang.startsWith(prefix));
+    if (match) { utter.voice = match; utter.lang = match.lang; }
+
+    utter.onend   = () => { isSpeaking = false; voiceWave.classList.remove('active'); resolve(); };
+    utter.onerror = () => { isSpeaking = false; voiceWave.classList.remove('active'); resolve(); };
+    synth.speak(utter);
+  });
 }
 
-// ── VOICE INPUT ───────────────────────
-function toggleMic() {
-  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-    alert('Speech recognition not supported in this browser. Try Chrome or Edge.');
-    return;
-  }
+function startListening() {
+  if (!soundMode || isSpeaking || isThinking) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { appendMessage('ai', '⚠️ Speech recognition requires Chrome or Edge.'); soundMode=false; soundModeBtn.classList.remove('active'); return; }
 
-  if (isRecording) {
-    recognition && recognition.stop();
-    return;
-  }
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SpeechRecognition();
-  recognition.lang = 'en-US'; // Could be made dynamic
-  recognition.interimResults = true;
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
   recognition.maxAlternatives = 1;
+  isRecording = true;
+  micBtn.classList.add('recording');
+  micBtn.textContent = '⏹️';
+  botStatus.textContent = '👂 Listening…';
 
-  recognition.onstart = () => {
-    isRecording = true;
-    micBtn.classList.add('recording');
-    micBtn.textContent = '⏹️';
+  recognition.onresult = e => {
+    const t = e.results[0][0].transcript.trim();
+    if (t.toLowerCase().includes('stop')) { toggleSoundMode(); return; }
+    if (t) { msgInput.value = t; sendMessage(); }
   };
+  recognition.onend = () => {
+    isRecording = false; micBtn.classList.remove('recording'); micBtn.textContent = '🎙️';
+    if (soundMode && !isSpeaking && !isThinking) botStatus.textContent = '🔊 Sound Mode';
+  };
+  recognition.onerror = e => { if (e.error !== 'no-speech') console.warn(e.error); recognition.stop(); };
+  try { recognition.start(); } catch(e) {}
+}
 
-  recognition.onresult = (e) => {
-    const transcript = Array.from(e.results)
-      .map(r => r[0].transcript)
-      .join('');
-    msgInput.value = transcript;
+function stopListening() {
+  if (recognition) { try { recognition.stop(); } catch(e){} recognition = null; }
+  isRecording = false;
+  micBtn.classList.remove('recording');
+  micBtn.textContent = '🎙️';
+}
+
+// ── MANUAL MIC (non-sound-mode) ──
+function toggleMic() {
+  if (soundMode) { toggleSoundMode(); return; }
+  if (isRecording) { stopListening(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Speech recognition requires Chrome or Edge.'); return; }
+
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.interimResults = true;
+
+  recognition.onstart = () => { isRecording=true; micBtn.classList.add('recording'); micBtn.textContent='⏹️'; };
+  recognition.onresult = e => {
+    msgInput.value = Array.from(e.results).map(r=>r[0].transcript).join('');
     autoResize(msgInput);
   };
-
   recognition.onend = () => {
-    isRecording = false;
-    micBtn.classList.remove('recording');
-    micBtn.textContent = '🎙️';
+    isRecording=false; micBtn.classList.remove('recording'); micBtn.textContent='🎙️';
     if (msgInput.value.trim()) sendMessage();
   };
-
-  recognition.onerror = (e) => {
-    console.warn('Speech error:', e.error);
-    recognition.stop();
-  };
-
+  recognition.onerror = e => { console.warn(e.error); recognition.stop(); };
   recognition.start();
 }
 
-// ── DAILY CHALLENGE ───────────────────
+// ── WORD TOOLTIP ──
+const tooltip = document.getElementById('wordTooltip');
+function showWordTooltip(e, chip) {
+  tooltip.innerHTML = `
+    <span class="tooltip-word">${chip.dataset.word||''}</span>
+    ${chip.dataset.rom ? `<span class="tooltip-rom">${chip.dataset.rom}</span>` : ''}
+    <span>${chip.dataset.def||''}</span>
+  `;
+  const rect = chip.getBoundingClientRect();
+  let top = rect.top - 10, left = rect.left;
+  if (top < 60) top = rect.bottom + 10;
+  if (left + 270 > window.innerWidth - 10) left = window.innerWidth - 280;
+  tooltip.style.top  = `${top + window.scrollY}px`;
+  tooltip.style.left = `${left}px`;
+  tooltip.classList.add('visible');
+  setTimeout(() => document.addEventListener('click', hideTooltip, { once:true }), 0);
+}
+function hideTooltip() { tooltip.classList.remove('visible'); }
+
+// ── QUICK PROMPTS ──
+function sendQuick(btn) {
+  const map = {
+    'Teach me a phrase': `Teach me a useful everyday ${settings.lang} phrase for a ${settings.level} learner.`,
+    'Cultural insight':  `Share one fascinating cultural fact about ${settings.lang}-speaking countries.`,
+    'Tell me a story':   `Start an immersive short story in ${settings.lang} where I'm the main character. ${settings.level} level.`,
+    'Grammar tip':       `Give me one essential ${settings.lang} grammar tip for ${settings.level} learners.`,
+    'Test my level':     `Quiz me with 3 ${settings.lang} questions at ${settings.level} level, then grade my answers.`,
+    'Fun fact':          `Tell me one surprising or funny fact about the ${settings.lang} language or culture.`,
+  };
+  msgInput.value = map[btn.textContent] || btn.textContent;
+  sendMessage();
+}
+
+// ── DAILY CHALLENGE ──
 async function loadDailyItems() {
   const container = document.getElementById('dailyItems');
-
-  // Check cache (refresh once per day)
-  const cacheKey  = `lv_daily_${settings.lang}_${new Date().toDateString()}`;
-  const cached    = localStorage.getItem(cacheKey);
-  if (cached) {
-    container.innerHTML = cached;
-    return;
-  }
-
-  if (!settings.apiKey) {
-    container.innerHTML = '<div class="daily-loading">Add your API key to unlock daily challenges.</div>';
-    return;
-  }
-
+  const key = `lv_daily_${settings.lang}_${new Date().toDateString()}`;
+  const cached = localStorage.getItem(key);
+  if (cached) { container.innerHTML = cached; return; }
+  if (!settings.apiKey) { container.innerHTML = '<div class="daily-loading">Add your API key to unlock daily challenges.</div>'; return; }
   container.innerHTML = '<div class="daily-loading">✦ Generating today\'s challenges…</div>';
-
-  const prompt = `Generate a "Daily Language Snapshot" for a ${settings.level} ${settings.lang} learner. Return ONLY a JSON array with exactly 4 objects, each with fields: type ("word"|"phrase"|"culture"|"grammar"), title (${settings.lang} content), romanization (if non-Latin, else ""), meaning (English translation/explanation), fun_fact (one interesting sentence).`;
-
   try {
-    const res = await fetch(`${GEMINI_URL}?key=${settings.apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.9, maxOutputTokens: 800 },
-      }),
+    const prompt = `Generate a Daily Language Snapshot for a ${settings.level} ${settings.lang} learner. Return ONLY valid JSON — an array of 4 objects, each with: type (word|phrase|culture|grammar), title (in ${settings.lang}), romanization (if non-Latin else ""), meaning (English), fun_fact (one sentence). No markdown, no extra text.`;
+    const res  = await fetch(`${GEMINI_URL}?key=${settings.apiKey}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ contents:[{role:'user',parts:[{text:prompt}]}], generationConfig:{temperature:0.9,maxOutputTokens:800} }),
     });
-
     const data = await res.json();
     let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-
-    // Strip markdown fences if present
-    raw = raw.replace(/```json|```/g, '').trim();
-
+    raw = raw.replace(/```json|```/g,'').trim();
     const items = JSON.parse(raw);
-    const tagClass = { word: 'tag-word', phrase: 'tag-phrase', culture: 'tag-culture', grammar: 'tag-grammar' };
-    const tagLabel = { word: '📖 Word', phrase: '💬 Phrase', culture: '🌏 Culture', grammar: '📚 Grammar' };
-
-    const html = items.map(item => `
+    const tClass = { word:'tag-word', phrase:'tag-phrase', culture:'tag-culture', grammar:'tag-grammar' };
+    const tLabel = { word:'Word', phrase:'Phrase', culture:'Culture', grammar:'Grammar' };
+    const html = items.map(i=>`
       <div class="daily-item">
-        <div class="daily-item-tag ${tagClass[item.type] || 'tag-word'}">${tagLabel[item.type] || '📖 Word'}</div>
-        <h4>${item.title}${item.romanization ? ` <span style="font-size:0.75rem;color:var(--teal);font-family:var(--font-mono)">(${item.romanization})</span>` : ''}</h4>
-        <p><strong>${item.meaning}</strong></p>
-        <p style="margin-top:6px;font-size:0.78rem">${item.fun_fact}</p>
-      </div>
-    `).join('');
-
+        <div class="daily-item-tag ${tClass[i.type]||'tag-word'}">${tLabel[i.type]||'Word'}</div>
+        <h4>${i.title}${i.romanization?` <span style="font-size:.73rem;color:var(--neon-cyan);font-family:var(--font-mono)">(${i.romanization})</span>`:''}</h4>
+        <p><strong>${i.meaning}</strong></p>
+        <p style="margin-top:5px;font-size:.77rem">${i.fun_fact}</p>
+      </div>`).join('');
     container.innerHTML = html;
-    localStorage.setItem(cacheKey, html);
-
-  } catch (err) {
-    container.innerHTML = '<div class="daily-loading">Couldn\'t load daily items. Check your API key.</div>';
-  }
+    localStorage.setItem(key, html);
+  } catch(e) { container.innerHTML = '<div class="daily-loading">Could not load. Check your API key.</div>'; }
 }
 
-// ── PANELS ────────────────────────────
-function openDailyPanel() {
-  document.getElementById('dailyPanel').classList.add('open');
-  document.getElementById('overlay').classList.add('active');
-}
-function openSettings() {
-  document.getElementById('settingsPanel').classList.add('open');
-  document.getElementById('overlay').classList.add('active');
-}
-function closePanels() {
-  document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('open'));
-  document.getElementById('overlay').classList.remove('active');
-}
+// ── PANELS ──
+function openDailyPanel()  { document.getElementById('dailyPanel').classList.add('open');    document.getElementById('overlay').classList.add('active'); }
+function openSettings()    { document.getElementById('settingsPanel').classList.add('open'); document.getElementById('overlay').classList.add('active'); }
+function closePanels()     { document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open')); document.getElementById('overlay').classList.remove('active'); }
+function clearChat()       { if (!confirm('Clear all chat?')) return; chatHistory=[]; chatBody.innerHTML=''; closePanels(); setTimeout(showWelcome, 300); }
 
-// ── CLEAR CHAT ────────────────────────
-function clearChat() {
-  if (!confirm('Clear all chat history?')) return;
-  chatHistory = [];
-  chatBody.innerHTML = '';
-  closePanels();
-  setTimeout(showWelcome, 300);
-}
-
-// ── TEXTAREA AUTO-RESIZE ──────────────
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-}
-
-// ── KEY HANDLER ───────────────────────
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-}
-
-// ── HELPERS ───────────────────────────
-function scrollToBottom() {
-  chatBody.scrollTop = chatBody.scrollHeight;
-}
-
-function now() {
-  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function escapeHtml(s) {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
+// ── HELPERS ──
+function autoResize(el)  { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+function handleKey(e)    { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+function scrollToBottom(){ chatBody.scrollTop=chatBody.scrollHeight; }
+function nowTime()       { return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+function escapeHtml(s)   { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function stripHtml(s)    { const d=document.createElement('div'); d.innerHTML=s; return d.textContent||d.innerText||''; }
