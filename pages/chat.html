@@ -1,29 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#04040a" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#070712"/>
   <title>LinguaVerse — Chat</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../css/global.css" />
-  <link rel="stylesheet" href="../css/chat.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/chat.css"/>
 </head>
 <body>
-
   <canvas id="bgCanvas"></canvas>
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>
   <div class="orb orb-3"></div>
 
-  <!-- TOP BAR -->
+  <!-- HEADER -->
   <header class="chat-header">
+
     <a href="../index.html" class="back-btn">←</a>
 
     <div class="bot-identity">
-      <!-- Animated AI avatar -->
       <div class="ai-avatar" id="aiAvatar">
         <div class="avatar-ring ring-1"></div>
         <div class="avatar-ring ring-2"></div>
@@ -37,57 +36,54 @@
     </div>
 
     <div class="header-actions">
+      <div class="voice-wave" id="voiceWave">
+        <div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+      <button class="sound-mode-btn" id="soundModeBtn" onclick="toggleSoundMode()">
+        🔊 <span class="sound-label">Sound</span>
+      </button>
       <button class="icon-btn" onclick="openDailyPanel()" title="Daily Challenge">📅</button>
       <button class="icon-btn" onclick="openSettings()" title="Settings">⚙️</button>
     </div>
+
   </header>
 
-  <!-- CHAT MESSAGES -->
-  <div class="chat-body" id="chatBody">
-
-    <!-- Welcome message injected by JS -->
-
-  </div>
+  <!-- CHAT BODY -->
+  <div class="chat-body" id="chatBody"></div>
 
   <!-- QUICK PROMPTS -->
-  <div class="quick-strip" id="quickStrip">
+  <div class="quick-strip">
     <button class="qbtn" onclick="sendQuick(this)">Teach me a phrase</button>
     <button class="qbtn" onclick="sendQuick(this)">Cultural insight</button>
     <button class="qbtn" onclick="sendQuick(this)">Tell me a story</button>
     <button class="qbtn" onclick="sendQuick(this)">Grammar tip</button>
     <button class="qbtn" onclick="sendQuick(this)">Test my level</button>
+    <button class="qbtn" onclick="sendQuick(this)">Fun fact</button>
   </div>
 
   <!-- INPUT BAR -->
   <footer class="chat-footer">
     <div class="input-bar">
       <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Voice input">🎙️</button>
-      <textarea
-        id="msgInput"
-        class="msg-input"
+      <textarea id="msgInput" class="msg-input"
         placeholder="Type or speak in any language…"
-        rows="1"
-        onkeydown="handleKey(event)"
-        oninput="autoResize(this)"
-      ></textarea>
-      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
-        <span class="send-arrow">↑</span>
-      </button>
+        rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
     </div>
   </footer>
 
-  <!-- DAILY CHALLENGE PANEL -->
+  <!-- DAILY PANEL -->
   <div class="side-panel" id="dailyPanel">
     <div class="panel-inner">
       <button class="panel-close" onclick="closePanels()">✕</button>
-      <h2 class="panel-title">✦ Daily Snapshot</h2>
-      <div class="daily-items" id="dailyItems">
-        <div class="daily-loading">Loading today's challenges…</div>
-      </div>
+      <h2 class="panel-title">📅 Daily Snapshot</h2>
+      <div id="dailyItems"><div class="daily-loading">Loading today's challenges…</div></div>
     </div>
   </div>
 
-  <!-- SETTINGS PANEL -->
+  <!-- SETTINGS PANEL — plain text in dropdowns, no flag emojis -->
   <div class="side-panel" id="settingsPanel">
     <div class="panel-inner">
       <button class="panel-close" onclick="closePanels()">✕</button>
@@ -95,45 +91,63 @@
 
       <label class="field-label">Target Language</label>
       <select id="settingLang" class="select-input" onchange="saveSetting('lang', this.value)">
-        <option value="Japanese">🇯🇵 Japanese</option>
-        <option value="French">🇫🇷 French</option>
-        <option value="Spanish">🇪🇸 Spanish</option>
-        <option value="Mandarin">🇨🇳 Mandarin</option>
-        <option value="Arabic">🇸🇦 Arabic</option>
-        <option value="German">🇩🇪 German</option>
-        <option value="Korean">🇰🇷 Korean</option>
-        <option value="Portuguese">🇧🇷 Portuguese</option>
-        <option value="Italian">🇮🇹 Italian</option>
-        <option value="Hindi">🇮🇳 Hindi</option>
-        <option value="Russian">🇷🇺 Russian</option>
-        <option value="Turkish">🇹🇷 Turkish</option>
+        <option value="Japanese">Japanese</option>
+        <option value="French">French</option>
+        <option value="Spanish">Spanish</option>
+        <option value="Mandarin">Mandarin</option>
+        <option value="Arabic">Arabic</option>
+        <option value="German">German</option>
+        <option value="Korean">Korean</option>
+        <option value="Portuguese">Portuguese</option>
+        <option value="Italian">Italian</option>
+        <option value="Hindi">Hindi</option>
+        <option value="Russian">Russian</option>
+        <option value="Turkish">Turkish</option>
+        <option value="Dutch">Dutch</option>
+        <option value="Swedish">Swedish</option>
+        <option value="Polish">Polish</option>
+        <option value="Greek">Greek</option>
+        <option value="Hebrew">Hebrew</option>
+        <option value="Thai">Thai</option>
+        <option value="Vietnamese">Vietnamese</option>
+        <option value="Indonesian">Indonesian</option>
       </select>
 
       <label class="field-label" style="margin-top:20px">Proficiency Level</label>
       <select id="settingLevel" class="select-input" onchange="saveSetting('level', this.value)">
-        <option value="Beginner">🌱 Beginner</option>
-        <option value="Intermediate">🔥 Intermediate</option>
-        <option value="Advanced">⚡ Advanced</option>
+        <option value="Beginner">Beginner</option>
+        <option value="Intermediate">Intermediate</option>
+        <option value="Advanced">Advanced</option>
       </select>
 
       <label class="field-label" style="margin-top:20px">Learning Mode</label>
       <select id="settingMode" class="select-input" onchange="saveSetting('mode', this.value)">
-        <option value="Conversation">💬 Conversation</option>
-        <option value="Story">📖 Story Mode</option>
-        <option value="Lesson">📚 Lessons</option>
+        <option value="Conversation">Conversation</option>
+        <option value="Story">Story Mode</option>
+        <option value="Lesson">Lessons</option>
+      </select>
+
+      <label class="field-label" style="margin-top:20px">Voice Speed</label>
+      <select id="settingSpeed" class="select-input" onchange="saveSetting('voiceSpeed', this.value)">
+        <option value="0.7">Slow</option>
+        <option value="1.0" selected>Normal</option>
+        <option value="1.3">Fast</option>
       </select>
 
       <label class="field-label" style="margin-top:20px">Gemini API Key</label>
-      <input type="password" id="settingKey" class="simple-input" placeholder="AIza…" oninput="saveSetting('apiKey', this.value)" />
+      <div style="position:relative">
+        <input type="password" id="settingKey" class="simple-input"
+          placeholder="AIza…" oninput="saveSetting('apiKey', this.value)"
+          style="padding-right:42px"/>
+        <button onclick="toggleSettingKey()"
+          style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.5">👁</button>
+      </div>
 
-      <button class="btn-danger" onclick="clearChat()" style="margin-top:28px">🗑 Clear Chat History</button>
+      <button class="btn-danger" onclick="clearChat()" style="margin-top:28px">Clear Chat History</button>
     </div>
   </div>
 
-  <!-- OVERLAY -->
   <div class="overlay" id="overlay" onclick="closePanels()"></div>
-
-  <!-- WORD TOOLTIP -->
   <div class="word-tooltip" id="wordTooltip"></div>
 
   <script src="../js/canvas-bg.js"></script>
