@@ -429,3 +429,4 @@ function scrollToBottom(){ chatBody.scrollTop=chatBody.scrollHeight; }
 function nowTime()       { return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
 function escapeHtml(s)   { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function stripHtml(s)    { const d=document.createElement('div'); d.innerHTML=s; return d.textContent||d.innerText||''; }
+     
