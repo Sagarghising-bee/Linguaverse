@@ -28,11 +28,11 @@
         <span class="step" data-step="3">3</span>
       </div>
 
-      <!-- Step 1 -->
+      <!-- Step 1: API Key -->
       <div class="step-panel active" id="step1">
         <div class="step-icon">🔑</div>
         <h2>Your Gemini API Key</h2>
-        <p class="step-desc">Your key stays on your device — never sent anywhere except Google's API.</p>
+        <p class="step-desc">Stored only on your device — never sent anywhere except Google's API.</p>
         <div class="input-group">
           <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off"/>
           <button class="toggle-pw" onclick="toggleKey()">👁</button>
@@ -41,54 +41,94 @@
         <button class="btn-primary" onclick="nextStep(1)">Continue ↗</button>
       </div>
 
-      <!-- Step 2 -->
+      <!-- Step 2: Language — colored badges, NO flag emojis (Windows safe) -->
       <div class="step-panel" id="step2">
         <div class="step-icon">🌍</div>
-        <h2>Choose your language</h2>
-        <p class="step-desc">Pick what you want to learn — change anytime in settings.</p>
+        <h2>What do you want to learn?</h2>
+        <p class="step-desc">Pick your target language — change anytime in settings.</p>
         <div class="lang-grid" id="langGrid">
-          <button class="lang-pick" data-lang="Japanese">🇯🇵<span>Japanese</span></button>
-          <button class="lang-pick" data-lang="French">🇫🇷<span>French</span></button>
-          <button class="lang-pick" data-lang="Spanish">🇪🇸<span>Spanish</span></button>
-          <button class="lang-pick" data-lang="Mandarin">🇨🇳<span>Mandarin</span></button>
-          <button class="lang-pick" data-lang="Arabic">🇸🇦<span>Arabic</span></button>
-          <button class="lang-pick" data-lang="German">🇩🇪<span>German</span></button>
-          <button class="lang-pick" data-lang="Korean">🇰🇷<span>Korean</span></button>
-          <button class="lang-pick" data-lang="Portuguese">🇧🇷<span>Portuguese</span></button>
-          <button class="lang-pick" data-lang="Italian">🇮🇹<span>Italian</span></button>
-          <button class="lang-pick" data-lang="Hindi">🇮🇳<span>Hindi</span></button>
-          <button class="lang-pick" data-lang="Russian">🇷🇺<span>Russian</span></button>
-          <button class="lang-pick" data-lang="Turkish">🇹🇷<span>Turkish</span></button>
-          <button class="lang-pick" data-lang="Dutch">🇳🇱<span>Dutch</span></button>
-          <button class="lang-pick" data-lang="Swedish">🇸🇪<span>Swedish</span></button>
-          <button class="lang-pick" data-lang="Polish">🇵🇱<span>Polish</span></button>
-          <button class="lang-pick" data-lang="Greek">🇬🇷<span>Greek</span></button>
-          <button class="lang-pick" data-lang="Hebrew">🇮🇱<span>Hebrew</span></button>
-          <button class="lang-pick" data-lang="Thai">🇹🇭<span>Thai</span></button>
-          <button class="lang-pick" data-lang="Vietnamese">🇻🇳<span>Vietnamese</span></button>
-          <button class="lang-pick" data-lang="Indonesian">🇮🇩<span>Indonesian</span></button>
+          <button class="lang-pick" data-lang="Japanese">
+            <span class="lang-badge lb-ja">JA</span><span class="name">Japanese</span>
+          </button>
+          <button class="lang-pick" data-lang="French">
+            <span class="lang-badge lb-fr"></span><span class="name">French</span>
+          </button>
+          <button class="lang-pick" data-lang="Spanish">
+            <span class="lang-badge lb-es"></span><span class="name">Spanish</span>
+          </button>
+          <button class="lang-pick" data-lang="Mandarin">
+            <span class="lang-badge lb-zh">ZH</span><span class="name">Mandarin</span>
+          </button>
+          <button class="lang-pick" data-lang="Arabic">
+            <span class="lang-badge lb-ar">AR</span><span class="name">Arabic</span>
+          </button>
+          <button class="lang-pick" data-lang="German">
+            <span class="lang-badge lb-de"></span><span class="name">German</span>
+          </button>
+          <button class="lang-pick" data-lang="Korean">
+            <span class="lang-badge lb-ko">KO</span><span class="name">Korean</span>
+          </button>
+          <button class="lang-pick" data-lang="Portuguese">
+            <span class="lang-badge lb-pt">PT</span><span class="name">Portuguese</span>
+          </button>
+          <button class="lang-pick" data-lang="Italian">
+            <span class="lang-badge lb-it"></span><span class="name">Italian</span>
+          </button>
+          <button class="lang-pick" data-lang="Hindi">
+            <span class="lang-badge lb-hi">HI</span><span class="name">Hindi</span>
+          </button>
+          <button class="lang-pick" data-lang="Russian">
+            <span class="lang-badge lb-ru"></span><span class="name">Russian</span>
+          </button>
+          <button class="lang-pick" data-lang="Turkish">
+            <span class="lang-badge lb-tr">TR</span><span class="name">Turkish</span>
+          </button>
+          <button class="lang-pick" data-lang="Dutch">
+            <span class="lang-badge lb-nl"></span><span class="name">Dutch</span>
+          </button>
+          <button class="lang-pick" data-lang="Swedish">
+            <span class="lang-badge lb-sv">SV</span><span class="name">Swedish</span>
+          </button>
+          <button class="lang-pick" data-lang="Polish">
+            <span class="lang-badge lb-pl"></span><span class="name">Polish</span>
+          </button>
+          <button class="lang-pick" data-lang="Greek">
+            <span class="lang-badge lb-el">EL</span><span class="name">Greek</span>
+          </button>
+          <button class="lang-pick" data-lang="Hebrew">
+            <span class="lang-badge lb-he">HE</span><span class="name">Hebrew</span>
+          </button>
+          <button class="lang-pick" data-lang="Thai">
+            <span class="lang-badge lb-th">TH</span><span class="name">Thai</span>
+          </button>
+          <button class="lang-pick" data-lang="Vietnamese">
+            <span class="lang-badge lb-vi">VI</span><span class="name">Vietnamese</span>
+          </button>
+          <button class="lang-pick" data-lang="Indonesian">
+            <span class="lang-badge lb-id"></span><span class="name">Indonesian</span>
+          </button>
         </div>
         <button class="btn-primary" onclick="nextStep(2)">Continue ↗</button>
       </div>
 
-      <!-- Step 3 -->
+      <!-- Step 3: Profile -->
       <div class="step-panel" id="step3">
         <div class="step-icon">🎯</div>
-        <h2>Your profile</h2>
-        <p class="step-desc">Personalises how the AI teaches you.</p>
+        <h2>Set your profile</h2>
+        <p class="step-desc">This personalises how the AI teaches you.</p>
 
         <label class="field-label">Your level</label>
         <div class="level-row">
-          <button class="level-btn active" data-level="Beginner">🌱 Beginner</button>
-          <button class="level-btn" data-level="Intermediate">🔥 Intermediate</button>
-          <button class="level-btn" data-level="Advanced">⚡ Advanced</button>
+          <button class="level-btn active" data-level="Beginner">Beginner</button>
+          <button class="level-btn" data-level="Intermediate">Intermediate</button>
+          <button class="level-btn" data-level="Advanced">Advanced</button>
         </div>
 
-        <label class="field-label" style="margin-top:20px">Learning mode</label>
+        <label class="field-label" style="margin-top:20px">Preferred mode</label>
         <div class="mode-row">
-          <button class="mode-btn active" data-mode="Conversation">💬 Chat</button>
-          <button class="mode-btn" data-mode="Story">📖 Story</button>
-          <button class="mode-btn" data-mode="Lesson">📚 Lessons</button>
+          <button class="mode-btn active" data-mode="Conversation">Chat</button>
+          <button class="mode-btn" data-mode="Story">Story</button>
+          <button class="mode-btn" data-mode="Lesson">Lessons</button>
         </div>
 
         <label class="field-label" style="margin-top:20px">Your name (optional)</label>
