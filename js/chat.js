@@ -17,7 +17,7 @@ let isThinking  = false;
 let recognition = null;
 let isRecording = false;
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
 // ── DOM REFS ─────────────────────────
 const chatBody  = document.getElementById('chatBody');
