@@ -20,7 +20,7 @@ let soundMode   = false;
 let isSpeaking  = false;
 const synth     = window.speechSynthesis;
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 // ── DOM ──
 const chatBody     = document.getElementById('chatBody');
@@ -296,28 +296,54 @@ function speakText(text) {
 function startListening() {
   if (!soundMode || isSpeaking || isThinking) return;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { appendMessage('ai', '⚠️ Speech recognition requires Chrome or Edge.'); soundMode=false; soundModeBtn.classList.remove('active'); return; }
+  if (!SR) {
+    appendMessage('ai', '⚠️ Speech recognition requires Chrome or Edge.');
+    soundMode = false; soundModeBtn.classList.remove('active'); return;
+  }
 
   recognition = new SR();
-  recognition.lang = 'en-US';
-  recognition.interimResults = false;
+
+  // BUG FIX 1: Use target language for recognition so Thai/Asian speech works correctly
+  const targetCode = LANG_CODES[settings.lang] || 'en-US';
+  recognition.lang = targetCode;
+  recognition.interimResults  = false;
   recognition.maxAlternatives = 1;
+
   isRecording = true;
   micBtn.classList.add('recording');
-  micBtn.textContent = '⏹️';
-  botStatus.textContent = '👂 Listening…';
+  micBtn.textContent    = '⏹️';
+  botStatus.textContent = `👂 Listening (${settings.lang})…`;
 
   recognition.onresult = e => {
     const t = e.results[0][0].transcript.trim();
-    if (t.toLowerCase().includes('stop')) { toggleSoundMode(); return; }
+    // Allow "stop" command in English even when target lang is active
+    const stripped = t.toLowerCase().replace(/[^a-z\s]/g, '').trim();
+    if (stripped === 'stop' || stripped.startsWith('stop ')) { toggleSoundMode(); return; }
     if (t) { msgInput.value = t; sendMessage(); }
   };
+
+  // BUG FIX 2: Auto-restart after silence so green light stays active
   recognition.onend = () => {
-    isRecording = false; micBtn.classList.remove('recording'); micBtn.textContent = '🎙️';
-    if (soundMode && !isSpeaking && !isThinking) botStatus.textContent = '🔊 Sound Mode';
+    isRecording = false;
+    micBtn.classList.remove('recording');
+    micBtn.textContent = '🎙️';
+    if (soundMode && !isSpeaking && !isThinking) {
+      botStatus.textContent = '🔊 Sound Mode';
+      // Restart automatically — user doesn't need to press anything
+      setTimeout(() => startListening(), 700);
+    }
   };
-  recognition.onerror = e => { if (e.error !== 'no-speech') console.warn(e.error); recognition.stop(); };
-  try { recognition.start(); } catch(e) {}
+
+  recognition.onerror = e => {
+    // 'no-speech' = user was quiet, just let onend handle restart
+    if (e.error === 'no-speech') { recognition.stop(); return; }
+    // 'aborted' = we stopped it intentionally, ignore
+    if (e.error === 'aborted') return;
+    console.warn('Speech error:', e.error);
+    recognition.stop();
+  };
+
+  try { recognition.start(); } catch(e) { console.warn('Recognition start failed:', e); }
 }
 
 function stopListening() {
@@ -327,15 +353,28 @@ function stopListening() {
   micBtn.textContent = '🎙️';
 }
 
-// ── MANUAL MIC (non-sound-mode) ──
+// ── MANUAL MIC ──
+// BUG FIX 3: In sound mode, mic button pauses/resumes listening instead of toggling sound mode off
 function toggleMic() {
-  if (soundMode) { toggleSoundMode(); return; }
+  if (soundMode) {
+    // In sound mode: tap mic to pause listening (not exit sound mode)
+    if (isRecording) {
+      stopListening();
+      botStatus.textContent = '🔊 Paused — tap mic to resume';
+    } else {
+      startListening();
+    }
+    return;
+  }
+
+  // Normal text mode mic
   if (isRecording) { stopListening(); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { alert('Speech recognition requires Chrome or Edge.'); return; }
 
   recognition = new SR();
-  recognition.lang = 'en-US';
+  // Use target language for manual mic too — fixes Asian language input
+  recognition.lang = LANG_CODES[settings.lang] || 'en-US';
   recognition.interimResults = true;
 
   recognition.onstart = () => { isRecording=true; micBtn.classList.add('recording'); micBtn.textContent='⏹️'; };
@@ -428,5 +467,4 @@ function handleKey(e)    { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();
 function scrollToBottom(){ chatBody.scrollTop=chatBody.scrollHeight; }
 function nowTime()       { return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
 function escapeHtml(s)   { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function stripHtml(s)    { const d=document.createElement('div'); d.innerHTML=s; return d.textContent||d.innerText||''; }
-     
+function stripHtml(s)    { const d=document.createElement('div'); d.innerHTML=s; return d.textContent||d
