@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#070712"/>
+  <title>LinguaVerse — Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/setup.css"/>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <main class="setup-page">
+    <a href="../index.html" class="back-btn">← Back</a>
+
+    <div class="setup-card reveal" style="--delay:0s">
+      <div class="step-indicator">
+        <span class="step active" data-step="1">1</span>
+        <span class="step-line"></span>
+        <span class="step" data-step="2">2</span>
+        <span class="step-line"></span>
+        <span class="step" data-step="3">3</span>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="step-panel active" id="step1">
+        <div class="step-icon">🔑</div>
+        <h2>Your Gemini API Key</h2>
+        <p class="step-desc">Your key stays on your device — never sent anywhere except Google's API.</p>
+        <div class="input-group">
+          <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off"/>
+          <button class="toggle-pw" onclick="toggleKey()">👁</button>
+        </div>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="help-link">Get a free key at aistudio.google.com →</a>
+        <button class="btn-primary" onclick="nextStep(1)">Continue ↗</button>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-panel" id="step2">
+        <div class="step-icon">🌍</div>
+        <h2>Choose your language</h2>
+        <p class="step-desc">Pick what you want to learn — change anytime in settings.</p>
+        <div class="lang-grid" id="langGrid">
+          <button class="lang-pick" data-lang="Japanese">🇯🇵<span>Japanese</span></button>
+          <button class="lang-pick" data-lang="French">🇫🇷<span>French</span></button>
+          <button class="lang-pick" data-lang="Spanish">🇪🇸<span>Spanish</span></button>
+          <button class="lang-pick" data-lang="Mandarin">🇨🇳<span>Mandarin</span></button>
+          <button class="lang-pick" data-lang="Arabic">🇸🇦<span>Arabic</span></button>
+          <button class="lang-pick" data-lang="German">🇩🇪<span>German</span></button>
+          <button class="lang-pick" data-lang="Korean">🇰🇷<span>Korean</span></button>
+          <button class="lang-pick" data-lang="Portuguese">🇧🇷<span>Portuguese</span></button>
+          <button class="lang-pick" data-lang="Italian">🇮🇹<span>Italian</span></button>
+          <button class="lang-pick" data-lang="Hindi">🇮🇳<span>Hindi</span></button>
+          <button class="lang-pick" data-lang="Russian">🇷🇺<span>Russian</span></button>
+          <button class="lang-pick" data-lang="Turkish">🇹🇷<span>Turkish</span></button>
+          <button class="lang-pick" data-lang="Dutch">🇳🇱<span>Dutch</span></button>
+          <button class="lang-pick" data-lang="Swedish">🇸🇪<span>Swedish</span></button>
+          <button class="lang-pick" data-lang="Polish">🇵🇱<span>Polish</span></button>
+          <button class="lang-pick" data-lang="Greek">🇬🇷<span>Greek</span></button>
+          <button class="lang-pick" data-lang="Hebrew">🇮🇱<span>Hebrew</span></button>
+          <button class="lang-pick" data-lang="Thai">🇹🇭<span>Thai</span></button>
+          <button class="lang-pick" data-lang="Vietnamese">🇻🇳<span>Vietnamese</span></button>
+          <button class="lang-pick" data-lang="Indonesian">🇮🇩<span>Indonesian</span></button>
+        </div>
+        <button class="btn-primary" onclick="nextStep(2)">Continue ↗</button>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-panel" id="step3">
+        <div class="step-icon">🎯</div>
+        <h2>Your profile</h2>
+        <p class="step-desc">Personalises how the AI teaches you.</p>
+
+        <label class="field-label">Your level</label>
+        <div class="level-row">
+          <button class="level-btn active" data-level="Beginner">🌱 Beginner</button>
+          <button class="level-btn" data-level="Intermediate">🔥 Intermediate</button>
+          <button class="level-btn" data-level="Advanced">⚡ Advanced</button>
+        </div>
+
+        <label class="field-label" style="margin-top:20px">Learning mode</label>
+        <div class="mode-row">
+          <button class="mode-btn active" data-mode="Conversation">💬 Chat</button>
+          <button class="mode-btn" data-mode="Story">📖 Story</button>
+          <button class="mode-btn" data-mode="Lesson">📚 Lessons</button>
+        </div>
+
+        <label class="field-label" style="margin-top:20px">Your name (optional)</label>
+        <input type="text" id="userName" placeholder="e.g. Alex" class="simple-input"/>
+
+        <button class="btn-primary" onclick="finishSetup()" style="margin-top:28px">Start Learning ✦</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/canvas-bg.js"></script>
+  <script src="../js/reveal.js"></script>
+  <script src="../js/setup.js"></script>
+</body>
+</html>
