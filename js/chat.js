@@ -1,5 +1,5 @@
 /* ═══════════════════════════════
-   chat.js — LinguaVerse (FIXED: sound mode & Asian language recognition)
+   chat.js — LinguaVerse
 ═══════════════════════════════ */
 
 // ── STATE ──
@@ -20,7 +20,7 @@ let soundMode   = false;
 let isSpeaking  = false;
 const synth     = window.speechSynthesis;
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 // ── DOM ──
 const chatBody     = document.getElementById('chatBody');
@@ -140,7 +140,7 @@ async function sendMessage() {
   const text = msgInput.value.trim();
   if (!text || isThinking) return;
   if (!settings.apiKey) {
-    appendMessage('ai', '⚠️ Please <a href="setup.html" style="color:var(--neon-cyan)">add your Gemini API key</a> in Setup first!');
+    appendMessage('ai', '⚠️ Please <a href="../pages/setup.html" style="color:var(--neon-cyan)">add your Gemini API key</a> in Setup first!');
     return;
   }
   appendMessage('user', escapeHtml(text));
@@ -234,7 +234,7 @@ function setThinking(on) {
 }
 
 // ══════════════════════════════
-//  SOUND MODE (FIXED)
+//  SOUND MODE
 // ══════════════════════════════
 function toggleSoundMode() {
   soundMode = !soundMode;
@@ -254,132 +254,6 @@ function toggleSoundMode() {
     voiceWave.classList.remove('active');
     appendMessage('ai', 'Sound Mode off — back to text chat. 💬');
   }
-}
-
-// ★ FIX 1 & 2: correct language + auto‑restart after silence ★
-function startListening() {
-  if (!soundMode || isSpeaking || isThinking) return;
-
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    appendMessage('ai', '⚠️ Speech recognition requires Chrome or Edge.');
-    soundMode = false;
-    soundModeBtn.classList.remove('active');
-    return;
-  }
-
-  // clean up any existing recognition
-  if (recognition) {
-    try { recognition.stop(); } catch(e) {}
-    recognition = null;
-  }
-
-  recognition = new SR();
-  // ★ use target language code (e.g., th-TH, ja-JP) instead of en-US ★
-  recognition.lang = LANG_CODES[settings.lang] || 'en-US';
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-
-  isRecording = true;
-  micBtn.classList.add('recording');
-  micBtn.textContent = '⏹️';
-  botStatus.textContent = '👂 Listening…';
-
-  recognition.onresult = (e) => {
-    const spoken = e.results[0][0].transcript.trim();
-    if (spoken.toLowerCase().includes('stop')) {
-      toggleSoundMode();   // exit sound mode if user says "stop"
-      return;
-    }
-    if (spoken) {
-      msgInput.value = spoken;
-      sendMessage();      // AI will respond and auto‑restart listening
-    }
-  };
-
-  recognition.onend = () => {
-    isRecording = false;
-    micBtn.classList.remove('recording');
-    micBtn.textContent = '🎙️';
-
-    // ★ auto‑restart after silence if sound mode still active ★
-    if (soundMode && !isSpeaking && !isThinking) {
-      setTimeout(() => {
-        if (soundMode && !isSpeaking && !isThinking && !isRecording) {
-          startListening();
-        }
-      }, 500);
-    } else if (soundMode) {
-      botStatus.textContent = '🔊 Sound Mode';
-    }
-  };
-
-  recognition.onerror = (e) => {
-    if (e.error !== 'no-speech') console.warn(e.error);
-    recognition.stop();
-  };
-
-  try { recognition.start(); } catch(e) {}
-}
-
-function stopListening() {
-  if (recognition) {
-    try { recognition.stop(); } catch(e) {}
-    recognition = null;
-  }
-  isRecording = false;
-  micBtn.classList.remove('recording');
-  micBtn.textContent = '🎙️';
-}
-
-// ★ FIX 3: Mic button in Sound Mode restarts listening, does NOT exit mode ★
-function toggleMic() {
-  // If Sound Mode is ON: restart listening without turning mode off
-  if (soundMode) {
-    if (recognition) {
-      try { recognition.stop(); } catch(e) {}
-      recognition = null;
-    }
-    startListening();      // fresh listening session
-    return;
-  }
-
-  // Original behaviour when Sound Mode is OFF
-  if (isRecording) {
-    stopListening();
-    return;
-  }
-
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    alert('Speech recognition requires Chrome or Edge.');
-    return;
-  }
-
-  recognition = new SR();
-  recognition.lang = LANG_CODES[settings.lang] || 'en-US';
-  recognition.interimResults = true;
-
-  recognition.onstart = () => {
-    isRecording = true;
-    micBtn.classList.add('recording');
-    micBtn.textContent = '⏹️';
-  };
-  recognition.onresult = (e) => {
-    msgInput.value = Array.from(e.results).map(r => r[0].transcript).join('');
-    autoResize(msgInput);
-  };
-  recognition.onend = () => {
-    isRecording = false;
-    micBtn.classList.remove('recording');
-    micBtn.textContent = '🎙️';
-    if (msgInput.value.trim()) sendMessage();
-  };
-  recognition.onerror = (e) => {
-    console.warn(e.error);
-    recognition.stop();
-  };
-  recognition.start();
 }
 
 async function speakAndListen(text) {
@@ -403,9 +277,11 @@ function speakText(text) {
     utter.pitch  = 1.05;
     utter.volume = 1;
 
+    // CRITICAL: always set lang so TTS uses correct language
     const code = LANG_CODES[settings.lang] || 'en-US';
     utter.lang  = code;
 
+    // Try to find a matching installed voice
     const voices = synth.getVoices();
     const prefix = code.split('-')[0];
     const match  = voices.find(v => v.lang === code) || voices.find(v => v.lang.startsWith(prefix));
@@ -415,6 +291,64 @@ function speakText(text) {
     utter.onerror = () => { isSpeaking = false; voiceWave.classList.remove('active'); resolve(); };
     synth.speak(utter);
   });
+}
+
+function startListening() {
+  if (!soundMode || isSpeaking || isThinking) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { appendMessage('ai', '⚠️ Speech recognition requires Chrome or Edge.'); soundMode=false; soundModeBtn.classList.remove('active'); return; }
+
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  isRecording = true;
+  micBtn.classList.add('recording');
+  micBtn.textContent = '⏹️';
+  botStatus.textContent = '👂 Listening…';
+
+  recognition.onresult = e => {
+    const t = e.results[0][0].transcript.trim();
+    if (t.toLowerCase().includes('stop')) { toggleSoundMode(); return; }
+    if (t) { msgInput.value = t; sendMessage(); }
+  };
+  recognition.onend = () => {
+    isRecording = false; micBtn.classList.remove('recording'); micBtn.textContent = '🎙️';
+    if (soundMode && !isSpeaking && !isThinking) botStatus.textContent = '🔊 Sound Mode';
+  };
+  recognition.onerror = e => { if (e.error !== 'no-speech') console.warn(e.error); recognition.stop(); };
+  try { recognition.start(); } catch(e) {}
+}
+
+function stopListening() {
+  if (recognition) { try { recognition.stop(); } catch(e){} recognition = null; }
+  isRecording = false;
+  micBtn.classList.remove('recording');
+  micBtn.textContent = '🎙️';
+}
+
+// ── MANUAL MIC (non-sound-mode) ──
+function toggleMic() {
+  if (soundMode) { toggleSoundMode(); return; }
+  if (isRecording) { stopListening(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Speech recognition requires Chrome or Edge.'); return; }
+
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.interimResults = true;
+
+  recognition.onstart = () => { isRecording=true; micBtn.classList.add('recording'); micBtn.textContent='⏹️'; };
+  recognition.onresult = e => {
+    msgInput.value = Array.from(e.results).map(r=>r[0].transcript).join('');
+    autoResize(msgInput);
+  };
+  recognition.onend = () => {
+    isRecording=false; micBtn.classList.remove('recording'); micBtn.textContent='🎙️';
+    if (msgInput.value.trim()) sendMessage();
+  };
+  recognition.onerror = e => { console.warn(e.error); recognition.stop(); };
+  recognition.start();
 }
 
 // ── WORD TOOLTIP ──
