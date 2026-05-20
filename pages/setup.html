@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="LinguaVerse"/>
+  <link rel="apple-touch-icon" href="../icon-192.png"/>
+  <meta name="theme-color" content="#070712"/>
+  <title>LinguaVerse — Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/global.css"/>
+  <link rel="stylesheet" href="../css/setup.css"/>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <main class="setup-page">
+    <a href="../index.html" class="back-btn">← Back</a>
+
+    <div class="setup-card reveal" style="--delay:0s">
+      <div class="step-indicator">
+        <span class="step active" data-step="1">1</span>
+        <span class="step-line"></span>
+        <span class="step" data-step="2">2</span>
+      </div>
+
+      <!-- Step 1: Language: Language — colored badges, NO flag emojis (Windows safe) -->
+      <div class="step-panel active" id="step1">
+        <div class="step-icon">🌍</div>
+        <h2>What do you want to learn?</h2>
+        <p class="step-desc">Pick your target language — change anytime in settings.</p>
+        <div class="lang-grid" id="langGrid">
+          <button class="lang-pick" data-lang="Japanese">
+            <span class="lang-badge lb-ja">JA</span><span class="name">Japanese</span>
+          </button>
+          <button class="lang-pick" data-lang="French">
+            <span class="lang-badge lb-fr"></span><span class="name">French</span>
+          </button>
+          <button class="lang-pick" data-lang="Spanish">
+            <span class="lang-badge lb-es"></span><span class="name">Spanish</span>
+          </button>
+          <button class="lang-pick" data-lang="Mandarin">
+            <span class="lang-badge lb-zh">ZH</span><span class="name">Mandarin</span>
+          </button>
+          <button class="lang-pick" data-lang="Arabic">
+            <span class="lang-badge lb-ar">AR</span><span class="name">Arabic</span>
+          </button>
+          <button class="lang-pick" data-lang="German">
+            <span class="lang-badge lb-de"></span><span class="name">German</span>
+          </button>
+          <button class="lang-pick" data-lang="Korean">
+            <span class="lang-badge lb-ko">KO</span><span class="name">Korean</span>
+          </button>
+          <button class="lang-pick" data-lang="Portuguese">
+            <span class="lang-badge lb-pt">PT</span><span class="name">Portuguese</span>
+          </button>
+          <button class="lang-pick" data-lang="Italian">
+            <span class="lang-badge lb-it"></span><span class="name">Italian</span>
+          </button>
+          <button class="lang-pick" data-lang="Hindi">
+            <span class="lang-badge lb-hi">HI</span><span class="name">Hindi</span>
+          </button>
+          <button class="lang-pick" data-lang="Russian">
+            <span class="lang-badge lb-ru"></span><span class="name">Russian</span>
+          </button>
+          <button class="lang-pick" data-lang="Turkish">
+            <span class="lang-badge lb-tr">TR</span><span class="name">Turkish</span>
+          </button>
+          <button class="lang-pick" data-lang="Dutch">
+            <span class="lang-badge lb-nl"></span><span class="name">Dutch</span>
+          </button>
+          <button class="lang-pick" data-lang="Swedish">
+            <span class="lang-badge lb-sv">SV</span><span class="name">Swedish</span>
+          </button>
+          <button class="lang-pick" data-lang="Polish">
+            <span class="lang-badge lb-pl"></span><span class="name">Polish</span>
+          </button>
+          <button class="lang-pick" data-lang="Greek">
+            <span class="lang-badge lb-el">EL</span><span class="name">Greek</span>
+          </button>
+          <button class="lang-pick" data-lang="Hebrew">
+            <span class="lang-badge lb-he">HE</span><span class="name">Hebrew</span>
+          </button>
+          <button class="lang-pick" data-lang="Thai">
+            <span class="lang-badge lb-th">TH</span><span class="name">Thai</span>
+          </button>
+          <button class="lang-pick" data-lang="Vietnamese">
+            <span class="lang-badge lb-vi">VI</span><span class="name">Vietnamese</span>
+          </button>
+          <button class="lang-pick" data-lang="Indonesian">
+            <span class="lang-badge lb-id"></span><span class="name">Indonesian</span>
+          </button>
+        </div>
+        <button class="btn-primary" onclick="nextStep(1)">Continue ↗</button>
+      </div>
+
+      <!-- Step 3: Profile -->
+      <div class="step-panel" id="step2">
+        <div class="step-icon">🎯</div>
+        <h2>Set your profile</h2>
+        <p class="step-desc">This personalises how the AI teaches you.</p>
+
+        <label class="field-label">Your level</label>
+        <div class="level-row">
+          <button class="level-btn active" data-level="Beginner">Beginner</button>
+          <button class="level-btn" data-level="Intermediate">Intermediate</button>
+          <button class="level-btn" data-level="Advanced">Advanced</button>
+        </div>
+
+        <label class="field-label" style="margin-top:20px">Preferred mode</label>
+        <div class="mode-row">
+          <button class="mode-btn active" data-mode="Conversation">Chat</button>
+          <button class="mode-btn" data-mode="Story">Story</button>
+          <button class="mode-btn" data-mode="Lesson">Lessons</button>
+        </div>
+
+        <label class="field-label" style="margin-top:20px">Your name (optional)</label>
+        <input type="text" id="userName" placeholder="e.g. Alex" class="simple-input"/>
+
+        <button class="btn-primary" onclick="finishSetup()" style="margin-top:28px">Start Learning ✦</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/canvas-bg.js"></script>
+  <script src="../js/reveal.js"></script>
+  <script src="../js/setup.js"></script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function() {
+        navigator.serviceWorker.register("../sw.js", { scope: "../" })
+          .then(function(r){ console.log("SW ready:", r.scope); })
+          .catch(function(e){ console.warn("SW failed:", e); });
+      });
+    }
+  </script>
+</body>
+</html>
+
