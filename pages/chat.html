@@ -2,12 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-    <meta name="mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="LinguaVerse"/>
-  <link rel="apple-touch-icon" href="../icon-192.png"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="theme-color" content="#070712"/>
   <title>LinguaVerse — Chat</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -15,22 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../css/global.css"/>
   <link rel="stylesheet" href="../css/chat.css"/>
-
-  <script>
-    // PWA STANDALONE FIX
-    // Sets real viewport height via JS — dvh/vh unreliable in Android PWA mode
-    function setRealHeight() {
-      var h = window.innerHeight;
-      document.documentElement.style.setProperty('--real-vh', h + 'px');
-      document.body.style.height = h + 'px';
-      document.body.style.maxHeight = h + 'px';
-    }
-    setRealHeight();
-    window.addEventListener('resize', setRealHeight);
-    window.addEventListener('orientationchange', function() {
-      setTimeout(setRealHeight, 300);
-    });
-  </script>
 </head>
 <body>
   <canvas id="bgCanvas"></canvas>
@@ -173,15 +152,5 @@
 
   <script src="../js/canvas-bg.js"></script>
   <script src="../js/chat.js"></script>
-
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", function() {
-        navigator.serviceWorker.register("../sw.js", { scope: "../" })
-          .then(function(r){ console.log("SW ready:", r.scope); })
-          .catch(function(e){ console.warn("SW failed:", e); });
-      });
-    }
-  </script>
 </body>
 </html>
