@@ -1,6 +1,6 @@
 /* ═══════════════════════════════
-   chat.js — LinguaVerse (Netlify proxy version)
-   No client-side API key needed
+   chat.js — LinguaVerse
+   API calls via Netlify proxy — key never exposed
 ═══════════════════════════════ */
 
 // ── STATE ──
@@ -20,6 +20,9 @@ let soundMode   = false;
 let isSpeaking  = false;
 const synth     = window.speechSynthesis;
 
+// ── PROXY URL — all Gemini calls go through Netlify function ──
+const PROXY_URL = '/.netlify/functions/gemini';
+
 // ── DOM ──
 const chatBody     = document.getElementById('chatBody');
 const msgInput     = document.getElementById('msgInput');
@@ -31,7 +34,7 @@ const botName      = document.getElementById('botName');
 const soundModeBtn = document.getElementById('soundModeBtn');
 const voiceWave    = document.getElementById('voiceWave');
 
-// Language code map for TTS & speech recognition
+// ── LANGUAGE MAPS ──
 const LANG_CODES = {
   Japanese:'ja-JP', French:'fr-FR', Spanish:'es-ES', Mandarin:'zh-CN',
   Arabic:'ar-SA', German:'de-DE', Korean:'ko-KR', Portuguese:'pt-BR',
@@ -40,7 +43,6 @@ const LANG_CODES = {
   Hebrew:'he-IL', Thai:'th-TH', Vietnamese:'vi-VN', Indonesian:'id-ID',
 };
 
-// Language display names for bot header
 const LANG_LABELS = {
   Japanese:'JA', French:'FR', Spanish:'ES', Mandarin:'ZH',
   Arabic:'AR', German:'DE', Korean:'KO', Portuguese:'PT',
@@ -54,7 +56,7 @@ window.addEventListener('DOMContentLoaded', () => {
   syncSettingsUI();
   showWelcome();
   loadDailyItems();
-  if (synth) synth.getVoices(); // preload voices
+  if (synth) synth.getVoices();
 });
 
 function syncSettingsUI() {
@@ -62,20 +64,18 @@ function syncSettingsUI() {
   setVal('settingLevel', settings.level);
   setVal('settingMode',  settings.mode);
   setVal('settingSpeed', String(settings.voiceSpeed));
-  // The API key input (if present) is ignored – we use proxy
   botName.textContent = `[${LANG_LABELS[settings.lang]||'??'}] LinguaBot`;
 }
-function setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val;
+}
 
 function saveSetting(key, val) {
   settings[key] = key === 'voiceSpeed' ? parseFloat(val) : val;
   localStorage.setItem(`lv_${key}`, val);
   if (key === 'lang') botName.textContent = `[${LANG_LABELS[val]||'??'}] LinguaBot`;
-}
-
-function toggleSettingKey() {
-  const el = document.getElementById('settingKey');
-  if (el) el.type = el.type === 'password' ? 'text' : 'password';
 }
 
 // ── WELCOME MESSAGE ──
@@ -92,8 +92,7 @@ function showWelcome() {
     Thai:'สวัสดี (Sawasdee)', Vietnamese:'Xin chào!', Indonesian:'Halo!',
   };
   const greeting = greetings[settings.lang] || 'Hello!';
-  const parts = greeting.split(' ');
-  const native = parts[0];
+  const native   = greeting.split(' ')[0];
 
   appendMessage('ai', `
     <span class="word-chip" data-word="${native}" data-rom="" data-def="A greeting in ${settings.lang}">${greeting}</span>
@@ -113,7 +112,7 @@ function buildSystemPrompt() {
 
 TEACHING STYLE:
 - Conversation: natural chat, gently correct mistakes inline
-- Story: immersive micro-stories where user is the protagonist  
+- Story: immersive micro-stories where user is the protagonist
 - Lesson: structured explanations with clear examples
 
 ${soundMode ? `SOUND MODE IS ON: Keep responses under 3 sentences. Plain text only — no HTML tags.
@@ -122,7 +121,7 @@ Format: say the phrase first, then brief English explanation.` : `
 FORMATTING (use every response):
 - Wrap key ${settings.lang} vocab: <span class="word-chip" data-word="WORD" data-rom="ROMANIZATION" data-def="ENGLISH">WORD</span>
 - Cultural notes: <div class="culture-badge">🌏 Cultural note: ONE_PARAGRAPH_NO_LINE_BREAKS</div>
-- Listen buttons: <button class="speak-btn" onclick="speakText('THE_TARGET_LANGUAGE_PHRASE_ONLY')">🔊 Listen</button>
+- Listen buttons: <button class="speak-btn" onclick="speakText('TARGET_LANGUAGE_PHRASE_ONLY')">🔊 Listen</button>
 - Use <strong> for grammar emphasis
 - Keep responses 3-5 sentences`}
 
@@ -133,7 +132,7 @@ ALWAYS:
 - Be warm, encouraging, and culturally insightful`;
 }
 
-// ── SEND MESSAGE (no API key check, uses proxy) ──
+// ── SEND MESSAGE ──
 async function sendMessage() {
   const text = msgInput.value.trim();
   if (!text || isThinking) return;
@@ -147,7 +146,7 @@ async function sendMessage() {
   const typingEl = showTyping();
 
   try {
-    const response = await callGeminiProxy(chatHistory);
+    const response = await callGemini(chatHistory);
     removeTyping(typingEl);
     chatHistory.push({ role:'model', parts:[{ text: response }] });
     appendMessage('ai', response);
@@ -157,20 +156,20 @@ async function sendMessage() {
     }
   } catch (err) {
     removeTyping(typingEl);
-    appendMessage('ai', `⚠️ Error: ${err.message}. Make sure your Netlify function is deployed and the API key is set.`);
+    appendMessage('ai', `⚠️ Something went wrong: ${err.message}`);
   } finally {
     setThinking(false);
     sendBtn.disabled = false;
   }
 }
 
-// ── GEMINI PROXY (calls Netlify function, not Google directly) ──
-async function callGeminiProxy(history) {
-  const response = await fetch('/.netlify/functions/gemini', {
-    method: 'POST',
+// ── GEMINI API — via Netlify proxy, key hidden server-side ──
+async function callGemini(history) {
+  const res = await fetch(PROXY_URL, {
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash-lite',
       payload: {
         system_instruction: { parts: [{ text: buildSystemPrompt() }] },
         contents: history,
@@ -180,49 +179,59 @@ async function callGeminiProxy(history) {
           topP: 0.95,
           maxOutputTokens: soundMode ? 250 : 600,
         },
-      },
+      }
     }),
   });
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Proxy error ${response.status}: ${errText}`);
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Server error ${res.status}`);
   }
-  const data = await response.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || 'I had trouble responding. Please try again.';
+
+  const data = await res.json();
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text
+    || 'I had trouble responding. Please try again.';
 }
 
 // ── APPEND MESSAGE ──
 function appendMessage(role, html) {
-  const row    = document.createElement('div');
-  row.className = `msg-row ${role==='user'?'user':''}`;
+  const row      = document.createElement('div');
+  row.className  = `msg-row ${role === 'user' ? 'user' : ''}`;
 
-  const av      = document.createElement('div');
-  av.className  = `msg-avatar ${role==='ai'?'ai-av':'usr-av'}`;
-  av.textContent = role==='ai' ? '✦' : (settings.name[0]||'U').toUpperCase();
+  const av       = document.createElement('div');
+  av.className   = `msg-avatar ${role === 'ai' ? 'ai-av' : 'usr-av'}`;
+  av.textContent = role === 'ai' ? '✦' : (settings.name[0] || 'U').toUpperCase();
 
-  const bubble   = document.createElement('div');
-  bubble.className = `bubble ${role==='ai'?'ai-bubble':'user-bubble'}`;
-  bubble.innerHTML = html;
+  const bubble      = document.createElement('div');
+  bubble.className  = `bubble ${role === 'ai' ? 'ai-bubble' : 'user-bubble'}`;
+  bubble.innerHTML  = html;
 
-  const time     = document.createElement('div');
-  time.className = 'msg-time';
-  time.textContent = nowTime();
+  const time        = document.createElement('div');
+  time.className    = 'msg-time';
+  time.textContent  = nowTime();
 
-  if (role==='user') { row.append(time, bubble, av); }
-  else               { row.append(av, bubble, time); }
+  if (role === 'user') row.append(time, bubble, av);
+  else                 row.append(av, bubble, time);
 
   chatBody.appendChild(row);
   scrollToBottom();
-  bubble.querySelectorAll('.word-chip').forEach(c => c.addEventListener('click', e => showWordTooltip(e, c)));
+  bubble.querySelectorAll('.word-chip').forEach(c =>
+    c.addEventListener('click', e => showWordTooltip(e, c))
+  );
 }
 
-// ── TYPING ──
+// ── TYPING INDICATOR ──
 function showTyping() {
   const row = document.createElement('div');
-  row.className = 'typing-row'; row.id = 'typingRow';
+  row.className = 'typing-row';
+  row.id = 'typingRow';
   row.innerHTML = `<div class="msg-avatar ai-av">✦</div>
-    <div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
-  chatBody.appendChild(row); scrollToBottom(); return row;
+    <div class="typing-bubble">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>`;
+  chatBody.appendChild(row);
+  scrollToBottom();
+  return row;
 }
 function removeTyping(el) { el && el.remove(); }
 
@@ -264,7 +273,6 @@ async function speakAndListen(text) {
   if (soundMode) setTimeout(() => startListening(), 500);
 }
 
-// Text-to-speech — always sets lang code first
 function speakText(text) {
   return new Promise(resolve => {
     if (!synth) { resolve(); return; }
@@ -272,14 +280,14 @@ function speakText(text) {
     isSpeaking = true;
     voiceWave.classList.add('active');
 
-    const plain = stripHtml(String(text)).replace(/\s+/g,' ').trim();
+    const plain = stripHtml(String(text)).replace(/\s+/g, ' ').trim();
     const utter = new SpeechSynthesisUtterance(plain);
     utter.rate   = settings.voiceSpeed;
     utter.pitch  = 1.05;
     utter.volume = 1;
 
-    const code = LANG_CODES[settings.lang] || 'en-US';
-    utter.lang  = code;
+    const code   = LANG_CODES[settings.lang] || 'en-US';
+    utter.lang   = code;
 
     const voices = synth.getVoices();
     const prefix = code.split('-')[0];
@@ -295,55 +303,85 @@ function speakText(text) {
 function startListening() {
   if (!soundMode || isSpeaking || isThinking) return;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { appendMessage('ai', '⚠️ Speech recognition requires Chrome or Edge.'); soundMode=false; soundModeBtn.classList.remove('active'); return; }
+  if (!SR) {
+    appendMessage('ai', '⚠️ Speech recognition requires Chrome or Edge.');
+    soundMode = false;
+    soundModeBtn.classList.remove('active');
+    return;
+  }
 
   recognition = new SR();
-  recognition.lang = 'en-US';
-  recognition.interimResults = false;
+  const targetCode = LANG_CODES[settings.lang] || 'en-US';
+  recognition.lang = targetCode;
+  recognition.interimResults  = false;
   recognition.maxAlternatives = 1;
+
   isRecording = true;
   micBtn.classList.add('recording');
-  micBtn.textContent = '⏹️';
-  botStatus.textContent = '👂 Listening…';
+  micBtn.textContent    = '⏹️';
+  botStatus.textContent = `👂 Listening (${settings.lang})…`;
 
   recognition.onresult = e => {
     const t = e.results[0][0].transcript.trim();
-    if (t.toLowerCase().includes('stop')) { toggleSoundMode(); return; }
+    const stripped = t.toLowerCase().replace(/[^a-z\s]/g, '').trim();
+    if (stripped === 'stop' || stripped.startsWith('stop ')) { toggleSoundMode(); return; }
     if (t) { msgInput.value = t; sendMessage(); }
   };
+
   recognition.onend = () => {
-    isRecording = false; micBtn.classList.remove('recording'); micBtn.textContent = '🎙️';
-    if (soundMode && !isSpeaking && !isThinking) botStatus.textContent = '🔊 Sound Mode';
+    isRecording = false;
+    micBtn.classList.remove('recording');
+    micBtn.textContent = '🎙️';
+    if (soundMode && !isSpeaking && !isThinking) {
+      botStatus.textContent = '🔊 Sound Mode';
+      setTimeout(() => startListening(), 700);
+    }
   };
-  recognition.onerror = e => { if (e.error !== 'no-speech') console.warn(e.error); recognition.stop(); };
-  try { recognition.start(); } catch(e) {}
+
+  recognition.onerror = e => {
+    if (e.error === 'no-speech') { recognition.stop(); return; }
+    if (e.error === 'aborted')   return;
+    console.warn('Speech error:', e.error);
+    recognition.stop();
+  };
+
+  try { recognition.start(); } catch(e) { console.warn('Recognition start failed:', e); }
 }
 
 function stopListening() {
-  if (recognition) { try { recognition.stop(); } catch(e){} recognition = null; }
+  if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; }
   isRecording = false;
   micBtn.classList.remove('recording');
   micBtn.textContent = '🎙️';
 }
 
-// ── MANUAL MIC (non-sound-mode) ──
+// ── MANUAL MIC ──
 function toggleMic() {
-  if (soundMode) { toggleSoundMode(); return; }
+  if (soundMode) {
+    if (isRecording) {
+      stopListening();
+      botStatus.textContent = '🔊 Paused — tap mic to resume';
+    } else {
+      startListening();
+    }
+    return;
+  }
+
   if (isRecording) { stopListening(); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { alert('Speech recognition requires Chrome or Edge.'); return; }
 
   recognition = new SR();
-  recognition.lang = 'en-US';
+  recognition.lang = LANG_CODES[settings.lang] || 'en-US';
   recognition.interimResults = true;
 
-  recognition.onstart = () => { isRecording=true; micBtn.classList.add('recording'); micBtn.textContent='⏹️'; };
+  recognition.onstart = () => { isRecording = true; micBtn.classList.add('recording'); micBtn.textContent = '⏹️'; };
   recognition.onresult = e => {
-    msgInput.value = Array.from(e.results).map(r=>r[0].transcript).join('');
+    msgInput.value = Array.from(e.results).map(r => r[0].transcript).join('');
     autoResize(msgInput);
   };
   recognition.onend = () => {
-    isRecording=false; micBtn.classList.remove('recording'); micBtn.textContent='🎙️';
+    isRecording = false; micBtn.classList.remove('recording'); micBtn.textContent = '🎙️';
     if (msgInput.value.trim()) sendMessage();
   };
   recognition.onerror = e => { console.warn(e.error); recognition.stop(); };
@@ -354,9 +392,9 @@ function toggleMic() {
 const tooltip = document.getElementById('wordTooltip');
 function showWordTooltip(e, chip) {
   tooltip.innerHTML = `
-    <span class="tooltip-word">${chip.dataset.word||''}</span>
+    <span class="tooltip-word">${chip.dataset.word || ''}</span>
     ${chip.dataset.rom ? `<span class="tooltip-rom">${chip.dataset.rom}</span>` : ''}
-    <span>${chip.dataset.def||''}</span>
+    <span>${chip.dataset.def || ''}</span>
   `;
   const rect = chip.getBoundingClientRect();
   let top = rect.top - 10, left = rect.left;
@@ -365,7 +403,7 @@ function showWordTooltip(e, chip) {
   tooltip.style.top  = `${top + window.scrollY}px`;
   tooltip.style.left = `${left}px`;
   tooltip.classList.add('visible');
-  setTimeout(() => document.addEventListener('click', hideTooltip, { once:true }), 0);
+  setTimeout(() => document.addEventListener('click', hideTooltip, { once: true }), 0);
 }
 function hideTooltip() { tooltip.classList.remove('visible'); }
 
@@ -383,57 +421,82 @@ function sendQuick(btn) {
   sendMessage();
 }
 
-// ── DAILY CHALLENGE (uses Netlify proxy) ──
+// ── DAILY CHALLENGE — via proxy ──
 async function loadDailyItems() {
   const container = document.getElementById('dailyItems');
-  const key = `lv_daily_${settings.lang}_${new Date().toDateString()}`;
-  const cached = localStorage.getItem(key);
+  const cacheKey  = `lv_daily_${settings.lang}_${new Date().toDateString()}`;
+  const cached    = localStorage.getItem(cacheKey);
   if (cached) { container.innerHTML = cached; return; }
 
   container.innerHTML = '<div class="daily-loading">✦ Generating today\'s challenges…</div>';
+
   try {
     const prompt = `Generate a Daily Language Snapshot for a ${settings.level} ${settings.lang} learner. Return ONLY valid JSON — an array of 4 objects, each with: type (word|phrase|culture|grammar), title (in ${settings.lang}), romanization (if non-Latin else ""), meaning (English), fun_fact (one sentence). No markdown, no extra text.`;
-    const res = await fetch('/.netlify/functions/gemini', {
-      method: 'POST',
+
+    const res = await fetch(PROXY_URL, {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash-lite',
         payload: {
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.9, maxOutputTokens: 800 },
-        },
+          generationConfig: { temperature: 0.9, maxOutputTokens: 800 }
+        }
       }),
     });
+
     const data = await res.json();
     let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-    raw = raw.replace(/```json|```/g,'').trim();
+    raw = raw.replace(/```json|```/g, '').trim();
     const items = JSON.parse(raw);
+
     const tClass = { word:'tag-word', phrase:'tag-phrase', culture:'tag-culture', grammar:'tag-grammar' };
     const tLabel = { word:'Word', phrase:'Phrase', culture:'Culture', grammar:'Grammar' };
-    const html = items.map(i=>`
+
+    const html = items.map(i => `
       <div class="daily-item">
-        <div class="daily-item-tag ${tClass[i.type]||'tag-word'}">${tLabel[i.type]||'Word'}</div>
-        <h4>${i.title}${i.romanization?` <span style="font-size:.73rem;color:var(--neon-cyan);font-family:var(--font-mono)">(${i.romanization})</span>`:''}</h4>
+        <div class="daily-item-tag ${tClass[i.type] || 'tag-word'}">${tLabel[i.type] || 'Word'}</div>
+        <h4>${i.title}${i.romanization
+          ? ` <span style="font-size:.73rem;color:var(--neon-cyan);font-family:var(--font-mono)">(${i.romanization})</span>`
+          : ''}</h4>
         <p><strong>${i.meaning}</strong></p>
         <p style="margin-top:5px;font-size:.77rem">${i.fun_fact}</p>
       </div>`).join('');
+
     container.innerHTML = html;
-    localStorage.setItem(key, html);
+    localStorage.setItem(cacheKey, html);
+
   } catch(e) {
-    container.innerHTML = '<div class="daily-loading">Could not load daily challenges. Check your Netlify function logs.</div>';
+    container.innerHTML = '<div class="daily-loading">Could not load daily items.</div>';
   }
 }
 
 // ── PANELS ──
-function openDailyPanel()  { document.getElementById('dailyPanel').classList.add('open');    document.getElementById('overlay').classList.add('active'); }
-function openSettings()    { document.getElementById('settingsPanel').classList.add('open'); document.getElementById('overlay').classList.add('active'); }
-function closePanels()     { document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open')); document.getElementById('overlay').classList.remove('active'); }
-function clearChat()       { if (!confirm('Clear all chat?')) return; chatHistory=[]; chatBody.innerHTML=''; closePanels(); setTimeout(showWelcome, 300); }
+function openDailyPanel() {
+  document.getElementById('dailyPanel').classList.add('open');
+  document.getElementById('overlay').classList.add('active');
+}
+function openSettings() {
+  document.getElementById('settingsPanel').classList.add('open');
+  document.getElementById('overlay').classList.add('active');
+}
+function closePanels() {
+  document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('open'));
+  document.getElementById('overlay').classList.remove('active');
+}
+function clearChat() {
+  if (!confirm('Clear all chat?')) return;
+  chatHistory = [];
+  chatBody.innerHTML = '';
+  closePanels();
+  setTimeout(showWelcome, 300);
+}
 
 // ── HELPERS ──
-function autoResize(el)  { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
-function handleKey(e)    { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
-function scrollToBottom(){ chatBody.scrollTop=chatBody.scrollHeight; }
-function nowTime()       { return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
-function escapeHtml(s)   { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function stripHtml(s)    { const d=document.createElement('div'); d.innerHTML=s; return d.textContent||d.innerText||''; }
+function autoResize(el)   { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+function handleKey(e)     { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function scrollToBottom() { requestAnimationFrame(() => { chatBody.scrollTop = chatBody.scrollHeight; }); }
+function nowTime()        { return new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }); }
+function escapeHtml(s)    { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function stripHtml(s)     { const d = document.createElement('div'); d.innerHTML = s; return d.textContent || d.innerText || ''; }
+   
