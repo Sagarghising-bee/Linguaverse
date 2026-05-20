@@ -20,7 +20,7 @@ let soundMode   = false;
 let isSpeaking  = false;
 const synth     = window.speechSynthesis;
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 // ── DOM ──
 const chatBody     = document.getElementById('chatBody');
@@ -429,4 +429,4 @@ function scrollToBottom(){ chatBody.scrollTop=chatBody.scrollHeight; }
 function nowTime()       { return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
 function escapeHtml(s)   { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function stripHtml(s)    { const d=document.createElement('div'); d.innerHTML=s; return d.textContent||d.innerText||''; }
-   
+                     
