@@ -3,23 +3,23 @@
    Handles PWA install + offline caching
 ═══════════════════════════════ */
 
-const CACHE_NAME = 'linguaverse-v1';
+const CACHE_NAME = 'Linguaverse-v1';
 
 // All files to cache for offline use
 const CACHE_FILES = [
-  './',
-  './index.html',
-  './pages/chat.html',
-  './pages/setup.html',
-  './css/global.css',
-  './css/landing.css',
-  './css/chat.css',
-  './css/setup.css',
-  './js/canvas-bg.js',
-  './js/chat.js',
-  './js/setup.js',
-  './js/reveal.js',
-  './manifest.json',
+  '/',
+  '/index.html',
+  '/pages/chat.html',
+  '/pages/setup.html',
+  '/css/global.css',
+  '/css/landing.css',
+  '/css/chat.css',
+  '/css/setup.css',
+  '/js/canvas-bg.js',
+  '/js/chat.js',
+  '/js/setup.js',
+  '/js/reveal.js',
+  '/manifest.json',
 ];
 
 // Install — cache all static files
