@@ -35,8 +35,12 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 });
 
 function nextStep(from) {
-  // Step 1 is now language selection (API key handled server-side)
   if (from === 1) {
+    const key = document.getElementById('apiKey').value.trim();
+    if (!key) { shakeInput('apiKey'); return; }
+    localStorage.setItem('lv_apiKey', key);
+  }
+  if (from === 2) {
     if (!selectedLang) { alert('Please pick a language first!'); return; }
     localStorage.setItem('lv_lang', selectedLang);
   }
@@ -66,7 +70,7 @@ function finishSetup() {
   card.style.transform  = 'translateY(-20px) scale(0.97)';
 
   // Correct path — setup.html is inside pages/, chat.html is also inside pages/
-  setTimeout(() => { window.location.href = 'chat.html'; }, 400);
+  setTimeout(() => { window.location.href = '../pages/chat.html'; }, 400);
 }
 
 function updateStepIndicator() {
@@ -76,11 +80,6 @@ function updateStepIndicator() {
     if (n === currentStep) s.classList.add('active');
     if (n <  currentStep)  s.classList.add('done');
   });
-}
-
-function toggleKey() {
-  const input = document.getElementById('apiKey');
-  if (input) input.type = input.type === 'password' ? 'text' : 'password';
 }
 
 function toggleKey() {
@@ -111,7 +110,9 @@ document.head.appendChild(shakeStyle);
 
 // Pre-fill saved values
 window.addEventListener('DOMContentLoaded', () => {
+  const savedKey  = localStorage.getItem('lv_apiKey');
   const savedLang = localStorage.getItem('lv_lang');
+  if (savedKey)  document.getElementById('apiKey').value = savedKey;
   if (savedLang) {
     document.querySelectorAll('.lang-pick').forEach(btn => {
       if (btn.dataset.lang === savedLang) { btn.classList.add('selected'); selectedLang = savedLang; }
