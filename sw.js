@@ -3,7 +3,7 @@
    Handles PWA install + offline caching
 ═══════════════════════════════ */
 
-const CACHE_NAME = 'linguaverse-v4';
+const CACHE_NAME = 'linguaverse-v9';
 
 // All files to cache for offline use
 const CACHE_FILES = [
