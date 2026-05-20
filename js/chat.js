@@ -1,10 +1,10 @@
 /* ═══════════════════════════════
-   chat.js — LinguaVerse
+   chat.js — LinguaVerse (Netlify proxy version)
+   No client-side API key needed
 ═══════════════════════════════ */
 
 // ── STATE ──
 let settings = {
-  apiKey:     localStorage.getItem('lv_apiKey')     || '',
   lang:       localStorage.getItem('lv_lang')       || 'Japanese',
   level:      localStorage.getItem('lv_level')      || 'Beginner',
   mode:       localStorage.getItem('lv_mode')       || 'Conversation',
@@ -19,8 +19,6 @@ let isRecording = false;
 let soundMode   = false;
 let isSpeaking  = false;
 const synth     = window.speechSynthesis;
-
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 // ── DOM ──
 const chatBody     = document.getElementById('chatBody');
@@ -63,8 +61,8 @@ function syncSettingsUI() {
   setVal('settingLang',  settings.lang);
   setVal('settingLevel', settings.level);
   setVal('settingMode',  settings.mode);
-  setVal('settingKey',   settings.apiKey);
   setVal('settingSpeed', String(settings.voiceSpeed));
+  // The API key input (if present) is ignored – we use proxy
   botName.textContent = `[${LANG_LABELS[settings.lang]||'??'}] LinguaBot`;
 }
 function setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
@@ -135,14 +133,11 @@ ALWAYS:
 - Be warm, encouraging, and culturally insightful`;
 }
 
-// ── SEND MESSAGE ──
+// ── SEND MESSAGE (no API key check, uses proxy) ──
 async function sendMessage() {
   const text = msgInput.value.trim();
   if (!text || isThinking) return;
-  if (!settings.apiKey) {
-    appendMessage('ai', '⚠️ Please <a href="../pages/setup.html" style="color:var(--neon-cyan)">add your Gemini API key</a> in Setup first!');
-    return;
-  }
+
   appendMessage('user', escapeHtml(text));
   chatHistory.push({ role:'user', parts:[{ text }] });
   msgInput.value = '';
@@ -152,7 +147,7 @@ async function sendMessage() {
   const typingEl = showTyping();
 
   try {
-    const response = await callGemini(chatHistory);
+    const response = await callGeminiProxy(chatHistory);
     removeTyping(typingEl);
     chatHistory.push({ role:'model', parts:[{ text: response }] });
     appendMessage('ai', response);
@@ -162,31 +157,37 @@ async function sendMessage() {
     }
   } catch (err) {
     removeTyping(typingEl);
-    appendMessage('ai', `⚠️ Error: ${err.message}. Check your API key in Settings ⚙️`);
+    appendMessage('ai', `⚠️ Error: ${err.message}. Make sure your Netlify function is deployed and the API key is set.`);
   } finally {
     setThinking(false);
     sendBtn.disabled = false;
   }
 }
 
-// ── GEMINI API ──
-async function callGemini(history) {
-  const body = {
-    system_instruction: { parts:[{ text: buildSystemPrompt() }] },
-    contents: history,
-    generationConfig: {
-      temperature: 0.85, topK: 40, topP: 0.95,
-      maxOutputTokens: soundMode ? 250 : 600,
-    },
-  };
-  const res = await fetch(`${GEMINI_URL}?key=${settings.apiKey}`, {
-    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+// ── GEMINI PROXY (calls Netlify function, not Google directly) ──
+async function callGeminiProxy(history) {
+  const response = await fetch('/.netlify/functions/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'gemini-2.0-flash',
+      payload: {
+        system_instruction: { parts: [{ text: buildSystemPrompt() }] },
+        contents: history,
+        generationConfig: {
+          temperature: 0.85,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: soundMode ? 250 : 600,
+        },
+      },
+    }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(()=>({}));
-    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Proxy error ${response.status}: ${errText}`);
   }
-  const data = await res.json();
+  const data = await response.json();
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || 'I had trouble responding. Please try again.';
 }
 
@@ -263,7 +264,7 @@ async function speakAndListen(text) {
   if (soundMode) setTimeout(() => startListening(), 500);
 }
 
-// Text-to-speech — ALWAYS sets lang code first (fixes wrong language bug)
+// Text-to-speech — always sets lang code first
 function speakText(text) {
   return new Promise(resolve => {
     if (!synth) { resolve(); return; }
@@ -277,11 +278,9 @@ function speakText(text) {
     utter.pitch  = 1.05;
     utter.volume = 1;
 
-    // CRITICAL: always set lang so TTS uses correct language
     const code = LANG_CODES[settings.lang] || 'en-US';
     utter.lang  = code;
 
-    // Try to find a matching installed voice
     const voices = synth.getVoices();
     const prefix = code.split('-')[0];
     const match  = voices.find(v => v.lang === code) || voices.find(v => v.lang.startsWith(prefix));
@@ -384,19 +383,26 @@ function sendQuick(btn) {
   sendMessage();
 }
 
-// ── DAILY CHALLENGE ──
+// ── DAILY CHALLENGE (uses Netlify proxy) ──
 async function loadDailyItems() {
   const container = document.getElementById('dailyItems');
   const key = `lv_daily_${settings.lang}_${new Date().toDateString()}`;
   const cached = localStorage.getItem(key);
   if (cached) { container.innerHTML = cached; return; }
-  if (!settings.apiKey) { container.innerHTML = '<div class="daily-loading">Add your API key to unlock daily challenges.</div>'; return; }
+
   container.innerHTML = '<div class="daily-loading">✦ Generating today\'s challenges…</div>';
   try {
     const prompt = `Generate a Daily Language Snapshot for a ${settings.level} ${settings.lang} learner. Return ONLY valid JSON — an array of 4 objects, each with: type (word|phrase|culture|grammar), title (in ${settings.lang}), romanization (if non-Latin else ""), meaning (English), fun_fact (one sentence). No markdown, no extra text.`;
-    const res  = await fetch(`${GEMINI_URL}?key=${settings.apiKey}`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ contents:[{role:'user',parts:[{text:prompt}]}], generationConfig:{temperature:0.9,maxOutputTokens:800} }),
+    const res = await fetch('/.netlify/functions/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-2.0-flash',
+        payload: {
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.9, maxOutputTokens: 800 },
+        },
+      }),
     });
     const data = await res.json();
     let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
@@ -413,7 +419,9 @@ async function loadDailyItems() {
       </div>`).join('');
     container.innerHTML = html;
     localStorage.setItem(key, html);
-  } catch(e) { container.innerHTML = '<div class="daily-loading">Could not load. Check your API key.</div>'; }
+  } catch(e) {
+    container.innerHTML = '<div class="daily-loading">Could not load daily challenges. Check your Netlify function logs.</div>';
+  }
 }
 
 // ── PANELS ──
@@ -429,4 +437,3 @@ function scrollToBottom(){ chatBody.scrollTop=chatBody.scrollHeight; }
 function nowTime()       { return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
 function escapeHtml(s)   { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function stripHtml(s)    { const d=document.createElement('div'); d.innerHTML=s; return d.textContent||d.innerText||''; }
-                     
