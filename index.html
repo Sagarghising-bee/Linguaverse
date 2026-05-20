@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#070712"/>
+  <meta name="description" content="LinguaVerse — Learn any language with an AI companion"/>
+  <link rel="manifest" href="manifest.json"/>
+  <title>LinguaVerse — AI Language Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/landing.css"/>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <main class="landing">
+    <header class="landing-header reveal" style="--delay:0s">
+      <div class="logo-wrap">
+        <span class="logo-mark">✦</span>
+        <span class="logo-text">LinguaVerse</span>
+      </div>
+      <nav class="top-nav">
+        <a href="pages/setup.html" class="nav-link">Get Started →</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <p class="hero-eyebrow reveal" style="--delay:0.1s">✦ AI Language Companion</p>
+      <h1 class="hero-title reveal" style="--delay:0.2s">
+        Speak the world's<br/><em>languages.</em>
+      </h1>
+      <p class="hero-sub reveal" style="--delay:0.35s">
+        An immersive AI tutor that adapts to your pace, teaches culture alongside grammar,
+        and makes every conversation feel like an adventure.
+      </p>
+
+      <div class="lang-orbit reveal" style="--delay:0.5s">
+        <span class="pill">Japanese</span>
+        <span class="pill">French</span>
+        <span class="pill">Arabic</span>
+        <span class="pill">Mandarin</span>
+        <span class="pill">Spanish</span>
+        <span class="pill">German</span>
+        <span class="pill">Korean</span>
+        <span class="pill">Hindi</span>
+        <span class="pill">Portuguese</span>
+        <span class="pill">Russian</span>
+        <span class="pill">Italian</span>
+        <span class="pill">Turkish</span>
+      </div>
+
+      <div class="cta-group reveal" style="--delay:0.65s">
+        <a href="pages/setup.html" class="btn-primary" style="width:auto">Begin Your Journey ↗</a>
+        <a href="pages/chat.html" class="btn-ghost">Quick Demo</a>
+      </div>
+    </section>
+
+    <section class="features reveal" style="--delay:0.8s">
+      <div class="feat-card">
+        <div class="feat-icon">🧠</div>
+        <h3>Adaptive AI Tutor</h3>
+        <p>Reads your mood and skill level. Gets harder when you soar, gentler when you struggle.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🔊</div>
+        <h3>Sound Conversation</h3>
+        <p>Full voice mode — speak freely and hear the AI respond in your target language.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🗺️</div>
+        <h3>Story Immersion</h3>
+        <p>Learn through living narratives — you're a detective in Tokyo, a chef in Paris.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🌏</div>
+        <h3>Cultural DNA</h3>
+        <p>Every lesson surfaces the idioms, gestures and nuances that make language real.</p>
+      </div>
+    </section>
+
+    <footer class="landing-footer reveal" style="--delay:1s">
+      <span>Powered by Gemini AI &nbsp;·&nbsp; PWA Ready &nbsp;·&nbsp; 20 Languages &nbsp;·&nbsp; Voice Enabled</span>
+    </footer>
+  </main>
+
+  <script src="js/canvas-bg.js"></script>
+  <script src="js/reveal.js"></script>
+</body>
+</html>
+
