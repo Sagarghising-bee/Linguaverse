@@ -3,11 +3,18 @@
 ═══════════════════════════════ */
 
 /* ── Root layout: header + body + footer fill full screen ── */
-html { height:100%; height:-webkit-fill-available; }
+html {
+  height: 100%;
+  height: -webkit-fill-available;   /* extra safety for older iOS */
+}
+
 body {
-  display:flex; flex-direction:column;
-  height:100vh; height:100dvh;
-  overflow:hidden; margin:0; padding:0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;                     /* use % instead of vh */
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 /* ══ HEADER — 3-column grid, nothing ever squeezed ══ */
