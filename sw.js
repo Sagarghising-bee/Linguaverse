@@ -1,8 +1,4 @@
-/* ═══════════════════════════════
-   sw.js — LinguaVerse Service Worker
-   Handles PWA install + offline caching
-═══════════════════════════════ */
-
+//Service Worker 
 const CACHE_NAME = 'linguaverse-v9';
 
 // All files to cache for offline use
